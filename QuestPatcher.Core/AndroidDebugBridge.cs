@@ -60,7 +60,7 @@ namespace QuestPatcher.Core
     /// <summary>
     /// Abstraction over using ADB to interact with the Quest.
     /// </summary>
-    public class AndroidDebugBridge
+    public class AndroidDebugBridge : IDisposable
     {
         /// <summary>
         /// Package names that will not be included in the apps to patch list
@@ -95,6 +95,7 @@ namespace QuestPatcher.Core
         private readonly IUserPrompter _prompter;
         private readonly string _adbExecutableName = OperatingSystem.IsWindows() ? "adb.exe" : "adb";
         private readonly Action _quit;
+        private readonly ProcessUtil _processUtil = new();
 
         /// <summary>
         /// The minimum time between checks for the currently open ADB daemon.
@@ -144,7 +145,7 @@ namespace QuestPatcher.Core
             {
                 // Redownloading ADB - existing installation was not valid
                 Log.Information("Existing downloaded ADB was out of date or corrupted - fetching again");
-                await ProcessUtil.InvokeAndCaptureOutput(downloadedAdb, "kill-server"); // Kill server first, otherwise directory will be in use, so can't be deleted.
+                await _processUtil.InvokeAndCaptureOutput(downloadedAdb, "kill-server"); // Kill server first, otherwise directory will be in use, so can't be deleted.
                 _adbPath = await _filesDownloader.GetFileLocation(ExternalFileType.PlatformTools, true);
             }
             else
@@ -166,7 +167,7 @@ namespace QuestPatcher.Core
             try
             {
                 Log.Verbose("Checking if ADB at {AdbPath} is present and up-to-date", adbExecutablePath);
-                var outputInfo = await ProcessUtil.InvokeAndCaptureOutput(adbExecutablePath, "version");
+                var outputInfo = await _processUtil.InvokeAndCaptureOutput(adbExecutablePath, "version");
                 string output = outputInfo.AllOutput;
 
                 Log.Debug("Output from checking ADB version: {VerisonOutput}", output);
@@ -225,7 +226,7 @@ namespace QuestPatcher.Core
                 await PrepareAdbPath();
             }
 
-            var output = await ProcessUtil.InvokeAndCaptureOutput(_adbPath!, "devices -l");
+            var output = await _processUtil.InvokeAndCaptureOutput(_adbPath!, "devices -l");
             Log.Debug("Listing devices output {Output}", output.AllOutput);
 
             string[] lines = output.StandardOutput.Trim().Split('\n');
@@ -272,7 +273,7 @@ namespace QuestPatcher.Core
 
         private async Task<bool> FindExistingAdbServer()
         {
-            _lastDaemonCheck = DateTime.Now;
+            _lastDaemonCheck = DateTime.UtcNow;
 
             Log.Debug("Checking for existing daemon");
             foreach (string adbPath in FindRunningAdbPath())
@@ -390,7 +391,7 @@ namespace QuestPatcher.Core
             Log.Debug("Executing ADB command: {Command}", $"adb {command}");
             while (true)
             {
-                var output = await ProcessUtil.InvokeAndCaptureOutput(_adbPath, $"-s {chosenDeviceId} " + command);
+                var output = await _processUtil.InvokeAndCaptureOutput(_adbPath, $"-s {chosenDeviceId} " + command);
                 if (output.StandardOutput.Length > 0)
                 {
                     Log.Verbose("Standard output: {StandardOutput}", output.StandardOutput);
@@ -485,9 +486,32 @@ namespace QuestPatcher.Core
             await DownloadFile(appPath, destination);
         }
 
-        public async Task UninstallApp(string packageId)
+        /// <summary>
+        /// Uninstalls the app with package ID <paramref name="packageId"/>, if an app with this ID exists.
+        /// </summary>
+        /// <param name="packageId">The package ID of the app to uninstall.</param>
+        /// <returns>True if the app existed and was uninstalled, false otherwise.</returns>
+        public async Task<bool> UninstallApp(string packageId)
         {
-            await RunCommand($"uninstall {packageId}");
+            // Allow exit code 1 as this is returned in the case of the app not being installed in the first place.
+            var output = await RunCommand($"uninstall {packageId}", 1);
+            if(output.ExitCode == 1)
+            {
+                // Check if the failure was due to the app being uninstalled already (this causes DELETE_FAILED_INTERNAL_ERROR, which is terrible design)
+                if (output.AllOutput.Contains("[DELETE_FAILED_INTERNAL_ERROR]"))
+                {
+                     return false;
+                }
+                else
+                {
+                    throw new AdbException("Received exit code 1 when uninstalling and was not because app was already uninstalled: "
+                        + output.AllOutput);
+                }
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public async Task<bool> IsPackageInstalled(string packageId)
@@ -803,6 +827,12 @@ namespace QuestPatcher.Core
 
             var directoryFiles = await ListDirectoryFiles(dirName, true);
             return directoryFiles.Contains(Path.GetFileName(path));
+        }
+
+        public void Dispose()
+        {
+            _logcatProcess?.Dispose();
+            _processUtil.Dispose(); // Ensure all ADB processes are killed.
         }
     }
 }
