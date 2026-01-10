@@ -31,7 +31,7 @@ namespace QuestPatcher.Core.Models
 
         public HandTrackingVersion HandTrackingType { get; set; }
 
-        public ModLoader ModLoader { get; set; } = ModLoader.QuestLoader;
+        public ModLoader ModLoader { get; set; } = ModLoader.Scotland2;
 
         public bool Passthrough { get; set; }
 
