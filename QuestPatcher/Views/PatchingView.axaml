@@ -19,7 +19,7 @@
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.ExternalFiles}" IsEnabled="False" Content="{x:Static res:Strings.PatchingOption_ExternalFiles}" />
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.CleanUpMods}" Content="清理Mod" />
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.Debuggable}" Content="{x:Static res:Strings.PatchingOption_Debugging}"/>
-                  <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.FlatScreenSupport}" Content="{x:Static res:Strings.PatchingOption_NoVRRequirement}"/>
+                  <!-- <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.FlatScreenSupport}" Content="{x:Static res:Strings.PatchingOption_NoVRRequirement}"/> -->
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.Microphone}" Content="{x:Static res:Strings.PatchingOption_Microphone}"/>
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.OpenXR}" Content="{x:Static res:Strings.PatchingOption_OpenXR}"/>
                   <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.MrcWorkaround}" Content="{x:Static res:Strings.PatchingOption_MrcWorkaround}"/>

@@ -49,6 +49,7 @@ namespace QuestPatcher.Core
                     _loadedConfig.UseMirrorDownload = false; // force not using mirror
                     _loadedConfig.Language = Language.ChineseSimplified; // force Chinese Simplified
                     _loadedConfig.AppId = SharedConstants.BeatSaberPackageID; // force beat saber
+                    _loadedConfig.PatchingOptions.FlatScreenSupport = false; // doesn't work on "newer" unity versions
                 }
                 catch (Exception ex)
                 {
