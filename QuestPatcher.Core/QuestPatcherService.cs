@@ -208,6 +208,10 @@ namespace QuestPatcher.Core
 
             // Sometimes files fail to download so we clear them. This shouldn't happen anymore but I may as well add it to be on the safe side
             await FilesDownloader.ClearCache();
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            Log.Information("Waiting for 5 seconds to give adb some time to clean up");
+            
             await DebugBridge.PrepareAdbPath(); // Re-download ADB if necessary
 
             if (InstallManager.InstalledApp?.ModLoader == ModLoader.Scotland2)
