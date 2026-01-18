@@ -5,26 +5,29 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using QuestPatcher.Core;
-using QuestPatcher.ModBrowser.Models;
+using QuestPatcher.Core.ModBrowser.Models;
+using QuestPatcher.Core.Modding;
 using Serilog;
 
-namespace QuestPatcher.ModBrowser
+namespace QuestPatcher.Core.ModBrowser
 {
     public class ExternalModManager
     {
         private const string VersionModUrlBase = "https://mods.bsquest.xyz/";
         
         private readonly ExternalFilesDownloader _filesDownloader;
-        private readonly BrowseImportManager _browseImportManager;
+        private readonly InstallManager _installManager;
+        private readonly ModManager _modManager;
         
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly Dictionary<string, List<ExternalMod>> _modCache = new Dictionary<string, List<ExternalMod>>();
-        
-        public ExternalModManager(ExternalFilesDownloader filesDownloader, BrowseImportManager browseImportManager)
+
+        public ExternalModManager(ExternalFilesDownloader filesDownloader, InstallManager installManager,
+            ModManager modManager)
         {
             _filesDownloader = filesDownloader;
-            _browseImportManager = browseImportManager;
+            _installManager = installManager;
+            _modManager = modManager;
         }
 
         /// <summary>
@@ -89,18 +92,30 @@ namespace QuestPatcher.ModBrowser
         /// <summary>
         /// Install the specified mod
         /// </summary>
-        /// <param name="mod">The mod to install</param>
+        /// <param name="eMod">The mod to install</param>
         /// <exception cref="FileDownloadFailedException">Failed to download the mod file</exception>
         /// <returns>Whether install was successful</returns>
-        public async Task<bool> InstallMod(ExternalMod mod)
+        public async Task<bool> InstallMod(ExternalMod eMod)
         {
-            Log.Debug("Installing mod {Mod}", mod.ToString());
+            Log.Debug("Installing mod {Mod}", eMod.ToString());
             using var tempFile = new TempFile();
-            var headers = await _filesDownloader.DownloadUri(mod.DownloadUrl, tempFile.Path, mod.Name);
+            await _filesDownloader.DownloadUri(eMod.DownloadUrl, tempFile.Path, eMod.Name);
             // assume the file is qmod since there isn't any other supported mod file type
-            var importInfo = new FileImportInfo(tempFile.Path) { IsTemporaryFile = true, OverrideExtension = ".qmod"}; 
-            // TODO: Avoid calling BrowseImportManager directly
-            return await _browseImportManager.TryImportMod(importInfo, false);
+            var qMod = await _modManager.TryParseMod(tempFile.Path, ".qmod");
+            if (qMod is null)
+            {
+                return false;
+            }
+
+            if (qMod.ModLoader != _installManager.InstalledApp?.ModLoader)
+            {
+                Log.Warning("Trying to install an external mod with a different mod loader!");
+                throw new InstallationException("Mod loader mis-match");
+            }
+
+            await qMod.Install();
+            await _modManager.SaveMods();
+            return true;
         }
     }
 }

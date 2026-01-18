@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using QuestPatcher.Core;
+using QuestPatcher.Core.ModBrowser;
+using QuestPatcher.Core.ModBrowser.Models;
 using QuestPatcher.Core.Modding;
 using QuestPatcher.Core.Models;
-using QuestPatcher.ModBrowser;
-using QuestPatcher.ModBrowser.Models;
 using QuestPatcher.Models;
 using ReactiveUI;
 using Serilog;
@@ -336,7 +335,7 @@ namespace QuestPatcher.ViewModels.ModBrowser
                 {
                     return true;
                 }
-                
+
                 Log.Warning("Failed to install mod {Mod}", mod.Name);
                 DialogBuilder dialog;
                 if (isSingle)
@@ -345,11 +344,25 @@ namespace QuestPatcher.ViewModels.ModBrowser
                 }
                 else
                 {
-                    dialog = new DialogBuilder { Title = "安装失败", Text = $"无法安装Mod {mod.Name}，检查日志以获取更多信息。\n要继续安装其他Mod吗？" };
+                    dialog = new DialogBuilder
+                    {
+                        Title = "安装失败", Text = $"无法安装 {mod.Name}，检查日志以获取更多信息。\n要继续安装其他Mod吗？"
+                    };
                     dialog.OkButton.Text = "继续";
                 }
 
                 return await dialog.OpenDialogue(_window);
+            }
+            catch (InstallationException e) when (e.Message.Contains("Mod loader mis-match"))
+            {
+                var dialog = new DialogBuilder
+                {
+                    Title = "不匹配的Mod注入器",
+                    Text = "正在尝试安装的Mod需要的Mod注入器和当前使用的Mod注入器不匹配\n可以在工具页面点击 “重新打补丁” 来更换Mod注入器",
+                    HideCancelButton = true
+                };
+                await dialog.OpenDialogue(_window);
+                return false;
             }
             catch (FileDownloadFailedException e)
             {

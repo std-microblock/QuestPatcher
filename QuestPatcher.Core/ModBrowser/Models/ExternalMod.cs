@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using SemanticVersioning;
 
-namespace QuestPatcher.ModBrowser.Models
+namespace QuestPatcher.Core.ModBrowser.Models
 {
     /* JSON example: {
           "name": "BeatLeader",

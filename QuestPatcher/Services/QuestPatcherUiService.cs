@@ -9,7 +9,6 @@ using QuestPatcher.Core;
 using QuestPatcher.Core.Models;
 using QuestPatcher.Core.Patching;
 using QuestPatcher.Core.Utils;
-using QuestPatcher.ModBrowser;
 using QuestPatcher.Models;
 using QuestPatcher.Resources;
 using QuestPatcher.Utils;
@@ -34,7 +33,6 @@ namespace QuestPatcher.Services
         private LoggingViewModel? _loggingViewModel;
         private OperationLocker? _operationLocker;
         private BrowseImportManager? _browseManager;
-        private ExternalModManager _externalModManager;
         private OtherItemsViewModel? _otherItemsView;
         private PatchingViewModel? _patchingView;
         private AboutViewModel? _aboutView;
@@ -84,13 +82,13 @@ namespace QuestPatcher.Services
             _operationLocker.StartOperation(); // Still loading
             _browseManager = new BrowseImportManager(OtherFilesManager, ModManager, window, InstallManager,
                 _operationLocker, this, FilesDownloader, SpecialFolders, CoreModManager);
-            _externalModManager = new ExternalModManager(FilesDownloader, _browseManager!);
             ProgressViewModel progressViewModel = new(_operationLocker, FilesDownloader);
             _otherItemsView = new OtherItemsViewModel(OtherFilesManager, window, _browseManager, _operationLocker, progressViewModel);
             _patchingView = new PatchingViewModel(Config, _operationLocker, PatchingManager, InstallManager,
                 CoreModManager, window, progressViewModel, FilesDownloader);
             _aboutView = new AboutViewModel(progressViewModel);
-            _browseModView = new BrowseModViewModel(window, Config, _operationLocker, progressViewModel, InstallManager, ModManager, _externalModManager);
+            _browseModView = new BrowseModViewModel(window, Config, _operationLocker, progressViewModel, InstallManager,
+                ModManager, ExternalModManager);
 
             MainWindowViewModel mainWindowViewModel = new(
                 new LoadedViewModel(

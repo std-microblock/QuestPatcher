@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using QuestPatcher.Core.CoreMod;
 using QuestPatcher.Core.Downgrading;
+using QuestPatcher.Core.ModBrowser;
 using QuestPatcher.Core.Modding;
 using QuestPatcher.Core.Models;
 using QuestPatcher.Core.Patching;
@@ -39,6 +40,7 @@ namespace QuestPatcher.Core
         protected DowngradeManger DowngradeManger { get; }
         protected CoreModsManager CoreModManager { get; }
         protected DownloadMirrorManager DownloadMirrorManager { get; } = new();
+        protected ExternalModManager ExternalModManager { get; }
 
         protected Config Config => _configManager.GetOrLoadConfig();
 
@@ -69,6 +71,7 @@ namespace QuestPatcher.Core
             InfoDumper = new InfoDumper(SpecialFolders, DebugBridge, ModManager, _configManager, InstallManager);
             DowngradeManger = new DowngradeManger(Config, InstallManager, FilesDownloader, DebugBridge, SpecialFolders);
             CoreModManager = new CoreModsManager(ModManager, InstallManager);
+            ExternalModManager = new ExternalModManager(FilesDownloader, InstallManager, ModManager);
 
             Log.Debug("QuestPatcherService constructed (QuestPatcher version {QuestPatcherVersion})", VersionUtil.QuestPatcherVersion);
         }
