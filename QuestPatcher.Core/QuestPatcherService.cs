@@ -142,8 +142,9 @@ namespace QuestPatcher.Core
             MigrateOldFiles();
 
             CoreModManager.Init();
+            DowngradeManger.Init();
             await InstallManager.LoadInstalledApp();
-            await Task.WhenAll(DownloadMirrorUtil.Instance.Refresh(), DowngradeManger.LoadAvailableDowngrades());
+            await DownloadMirrorUtil.Instance.Refresh();
             if (InstallManager.InstalledApp!.ModLoader == ModLoader.Scotland2)
             {
                 await PatchingManager.SaveScotland2(false); // Make sure that Scotland2 is saved to the right location

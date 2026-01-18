@@ -3,18 +3,27 @@ using System.Text.Json.Serialization;
 
 namespace QuestPatcher.Core.Downgrading.Models
 {
-    public class AppDiff
+    public sealed record AppDiff
     {
         [JsonPropertyName("from_version")]
-        public string FromVersion { get; set; }
+        public string FromVersion { get; }
         
         [JsonPropertyName("to_version")]
-        public string ToVersion { get; set; }
+        public string ToVersion { get; }
         
         [JsonPropertyName("apk_diff")]
-        public FileDiff ApkDiff { get; set; }
+        public FileDiff ApkDiff { get; }
         
         [JsonPropertyName("obb_diffs")]
-        public IList<FileDiff> ObbDiffs { get; set; }
+        public List<FileDiff> ObbDiffs { get; }
+
+        [JsonConstructor]
+        public AppDiff(string fromVersion, string toVersion, FileDiff apkDiff, List<FileDiff> obbDiffs)
+        {
+            FromVersion = fromVersion;
+            ToVersion = toVersion;
+            ApkDiff = apkDiff;
+            ObbDiffs = obbDiffs;
+        }
     }
 }

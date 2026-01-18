@@ -9,10 +9,11 @@ namespace QuestPatcher.Core.Utils
     {
         private readonly AsyncLock _lock = new();
 
-        private T? _data;
         private Task<T>? _loadTask;
         private CancellationTokenSource? _cancellationTokenSource;
         private int _disposed;
+
+        protected T? Data { get; private set; }
 
         public void Dispose()
         {
@@ -26,7 +27,7 @@ namespace QuestPatcher.Core.Utils
             {
                 cts = _cancellationTokenSource;
                 _cancellationTokenSource = null;
-                _data = null;
+                Data = null;
                 _loadTask = null;
             }
 
@@ -47,7 +48,7 @@ namespace QuestPatcher.Core.Utils
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "Initial load failed");
+                    Log.Error(e, "Initial load failed for {Name}", GetType().Name);
                 }
             });
         }
@@ -78,9 +79,9 @@ namespace QuestPatcher.Core.Utils
                 if (!refresh)
                 {
                     // check and return existing data / task
-                    if (_data is not null)
+                    if (Data is not null)
                     {
-                        return _data;
+                        return Data;
                     }
 
                     if (_loadTask != null &&
@@ -129,7 +130,7 @@ namespace QuestPatcher.Core.Utils
                 {
                     // it is the same task, there no new task created between our two lock acquires
                     // update cache data
-                    _data = result;
+                    Data = result;
                     _loadTask = null;
                 }
 

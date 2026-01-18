@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using QuestPatcher.Core.Downgrading.Models;
 using QuestPatcher.Core.Models;
@@ -12,32 +13,21 @@ using Serilog;
 
 namespace QuestPatcher.Core.Downgrading
 {
-    public class DowngradeManger
+    public class DowngradeManger : SharableLoading<DowngradeIndex>
     {
-        private const string IndexUrl = @"https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/index.json";
-        private const string Crc32Url = @"https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/assets.crc32.json";
+        private const string IndexUrl = "https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/index.json";
 
-        private const string DiffUrlBase = @"https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/";
+        private const string Crc32Url =
+            "https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/assets.crc32.json";
+
+        private const string DiffUrlBase = "https://github.com/Lauriethefish/mbf-diffs/releases/download/1.0.0/";
         
         private readonly Config _config;
-
         private readonly InstallManager _installManager;
-
         private readonly ExternalFilesDownloader _filesDownloader;
-        
         private readonly AndroidDebugBridge _debugBridge;
-
         private readonly string _outputFolder;
-
-        private readonly IDictionary<string, IList<AppDiff>> _availablePaths = new Dictionary<string, IList<AppDiff>>();
-        
-        private readonly IDictionary<string, uint> _assetCrc32 = new Dictionary<string, uint>();
-
         private readonly HttpClient _httpClient = new();
-        
-        private bool _loaded = false;
-
-        private Task<bool>? _loadingTask;
 
         public DowngradeManger(Config config, InstallManager installManager, ExternalFilesDownloader filesDownloader, AndroidDebugBridge debugBridge, SpecialFolders specialFolders)
         {
@@ -48,91 +38,42 @@ namespace QuestPatcher.Core.Downgrading
             _outputFolder = specialFolders.DowngradeFolder;
         }
 
-        public Task<bool> LoadAvailableDowngrades(bool refresh = false)
+        protected override async Task<DowngradeIndex> LoadAsync(CancellationToken cToken)
         {
-            if (_loaded && !refresh) return Task.FromResult(true);
+            Log.Information("Loading downgrade index");
+            var indexJsonTask = Task.Run(() => _httpClient.GetStringAsync(IndexUrl, cToken), cToken);
+            var checksumsJsonTask = Task.Run(() => _httpClient.GetStringAsync(Crc32Url, cToken), cToken);
+            await Task.WhenAll(indexJsonTask, checksumsJsonTask);
 
-            return Task.Run(async () =>
-            {
-                try
-                {
-                    var task = _loadingTask;
-                    if (task != null)
-                    {
-                        return await task;
-                    }
-                    
-                    task = Load();
-                    _loadingTask = task;
-                    return await task;
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Failed to load downgrade index: {Message}", e.Message);
-                    return false;
-                }
-                finally
-                {
-                    _loadingTask = null;
-                }
-            });
-        }
-
-        private async Task<bool> Load()
-        {
-            Log.Information("Loading downgrade index...");
-            _loaded = false;
-            _availablePaths.Clear();
-            _assetCrc32.Clear();
-            // Load asset crc32
-            string crc32Json = await _httpClient.GetStringAsync(Crc32Url);
-            var crc32Dict = JsonSerializer.Deserialize<IDictionary<string, uint>>(crc32Json);
-            if (crc32Dict == null)
-            {
-                Log.Warning("Failed to deserialize asset crc32");
-                return false;
-            }
-
-            foreach (var pair in crc32Dict)
-            {
-                _assetCrc32.Add(pair);
-            }
-            
-            // Load available downgrades
-            string indexJson = await _httpClient.GetStringAsync(IndexUrl);
+            string indexJson = await indexJsonTask;
+            string checksumsJson = await checksumsJsonTask;
             var appDiffs = JsonSerializer.Deserialize<IList<AppDiff>>(indexJson);
-            if (appDiffs == null)
+            var checksums = JsonSerializer.Deserialize<Dictionary<string, uint>>(checksumsJson);
+
+            if (appDiffs is null || checksums is null)
             {
-                Log.Warning("Failed to deserialize downgrade index");
-                return false;
+                throw new Exception("Failed to deserialize data, invalid data structure");
             }
 
-            Log.Debug("Deserialized {Count} app diffs", appDiffs.Count);
+            var paths = appDiffs
+                .GroupBy(diff => diff.FromVersion)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Group by from version
-            foreach (var appDiff in appDiffs)
-            {
-                if (_availablePaths.TryGetValue(appDiff.FromVersion, out var existingPaths))
-                {
-                    existingPaths.Add(appDiff);
-                }
-                else
-                {
-                    _availablePaths[appDiff.FromVersion] = new List<AppDiff> { appDiff };
-                }
-            }
-            
-            Log.Debug("Downgrade index loaded");
-            _loaded = true;
-            return true;
+            Log.Debug("Loaded {Diffs} app diffs and {Checksums} checksums", appDiffs.Count, checksums.Count);
+            return new DowngradeIndex(paths, checksums);
         }
 
-        public IList<string> GetAvailablePathFor(string fromVersion)
+        public async Task<IList<string>> GetAvailablePathAsync(string? fromVersion)
         {
-            if (string.IsNullOrWhiteSpace(fromVersion)) return new List<string>();
-            return _availablePaths.TryGetValue(fromVersion, out var paths)
+            if (string.IsNullOrWhiteSpace(fromVersion))
+            {
+                return Array.Empty<string>();
+            }
+
+            var index = await GetOrLoadAsync(false);
+            return index.Paths.TryGetValue(fromVersion, out var paths)
                 ? paths.Select(path => path.ToVersion).ToList()
-                : new List<string>();
+                : Array.Empty<string>();
         }
         
         /// <summary>
@@ -143,20 +84,16 @@ namespace QuestPatcher.Core.Downgrading
         /// <exception cref="DowngradeException">When downgrade failed</exception>
         public async Task DowngradeApp(string toVersion)
         {
-            string? fromVersion = _installManager.InstalledApp?.Version;
-            if (fromVersion == null)
+            var apk = _installManager.InstalledApp;
+            if (apk == null)
             {
                 Log.Error("Cannot downgrade app that is not installed!");
                 throw new DowngradeException("App is not installed");
             }
-            
-            if (_config.AppId != SharedConstants.BeatSaberPackageID)
-            {
-                Log.Error("Cannot downgrade app that is not Beat Saber!");
-                throw new DowngradeException("Current app is not Beat Saber");
-            }
-            
-            if (!_availablePaths.TryGetValue(fromVersion, out var paths))
+
+            string fromVersion = apk.Version;
+            var availablePaths = (await GetOrLoadAsync(false)).Paths;
+            if (!availablePaths.TryGetValue(fromVersion, out var paths))
             {
                 Log.Warning("No downgrade path found for {FromVersion}", fromVersion);
                 throw new DowngradeException("No downgrade path found");
@@ -169,22 +106,22 @@ namespace QuestPatcher.Core.Downgrading
                 throw new DowngradeException("Cannot downgrade to specified version");
             }
 
-            await DowngradeApp(path);
+            await DowngradeApp(apk, path);
         }
 
-        private async Task DowngradeApp(AppDiff appDiff)
+        private async Task DowngradeApp(ApkInfo apk, AppDiff appDiff)
         {
             Log.Information("Starting downgrade from {FromVersion} to {ToVersion}", appDiff.FromVersion, appDiff.ToVersion);
             
             // Check apk crc
-            if (!await HashUtil.CheckCrc32Async(_installManager.InstalledApp!.Path, appDiff.ApkDiff.FileCrc))
+            if (!await HashUtil.CheckCrc32Async(apk.Path, appDiff.ApkDiff.FileCrc))
             {
                 Log.Error("Apk file has incorrect CRC, is the apk not original?");
                 throw new DowngradeException("Apk file is corrupted");
             }
             
             // Download and apply diffs
-            string apkPath = await PatchFile(appDiff.ApkDiff, _installManager.InstalledApp!.Path);
+            string apkPath = await PatchFile(appDiff.ApkDiff, apk.Path);
             
             foreach (var fileDiff in appDiff.ObbDiffs)
             {
@@ -243,7 +180,7 @@ namespace QuestPatcher.Core.Downgrading
             string uri = $"{DiffUrlBase}{fileDiff.DiffName}";
             _ = await _filesDownloader.DownloadUri(uri, diffPath);
             // check diff file crc
-            if (_assetCrc32.TryGetValue(fileDiff.DiffName, out uint diffCrc))
+            if (Data!.Checksums.TryGetValue(fileDiff.DiffName, out uint diffCrc))
             {
                 if (!await HashUtil.CheckCrc32Async(diffPath, diffCrc))
                 {

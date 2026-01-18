@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Reactive;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using DynamicData;
@@ -61,28 +59,32 @@ namespace QuestPatcher.ViewModels
             };
         }
 
-        public async Task LoadVersions()
+        private async Task LoadVersions()
         {
             IsLoading = true;
             Log.Debug("Loading available versions...");
-            bool loaded = await _downgradeManger.LoadAvailableDowngrades();
 
-            if (!loaded)
+            IList<string> paths;
+            try
             {
+                paths = await _downgradeManger.GetAvailablePathAsync(_installManager.InstalledApp?.Version);
+                Log.Debug("Available paths: {Paths}", paths);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to load available versions");
                 IsLoading = false;
                 var dialog = new DialogBuilder
                 {
                     Title = "出错了",
-                    Text = "无法加载可用的降级版本，检查日志以获取详细信息",
+                    Text = "无法加载可用的降级版本",
                     HideCancelButton = true
                 };
+                dialog.WithException(e);
                 await dialog.OpenDialogue(_window);
                 _window.Close();
                 return;
             }
-            
-            var paths = _downgradeManger.GetAvailablePathFor(_installManager.InstalledApp?.Version ?? "");
-            Log.Debug("Available paths: {Paths}", paths);
             
             if (paths.Count == 0)
             {
@@ -90,7 +92,7 @@ namespace QuestPatcher.ViewModels
                 var dialog = new DialogBuilder
                 {
                     Title = "无法降级",
-                    Text = $"{_installManager.InstalledApp!.Version} 暂无可用的降级版本\n刚刚更新的最新版游戏可能需要一些时间才会有可用降级",
+                    Text = $"{_installManager.InstalledApp?.Version ?? "null"} 暂无可用的降级版本\n刚刚更新的最新版游戏可能需要一些时间才会有可用降级",
                     HideCancelButton = true
                 };
                 await dialog.OpenDialogue(_window);
