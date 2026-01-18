@@ -38,6 +38,7 @@ namespace QuestPatcher.Core
         
         protected DowngradeManger DowngradeManger { get; }
         protected CoreModsManager CoreModManager { get; }
+        protected DownloadMirrorManager DownloadMirrorManager { get; } = new();
 
         protected Config Config => _configManager.GetOrLoadConfig();
 
@@ -58,7 +59,7 @@ namespace QuestPatcher.Core
             Prompter = prompter;
             _configManager = new ConfigManager(SpecialFolders);
             _configManager.GetOrLoadConfig(); // Load the config file
-            FilesDownloader = new ExternalFilesDownloader(Config, SpecialFolders);
+            FilesDownloader = new ExternalFilesDownloader(Config, SpecialFolders, DownloadMirrorManager);
             DebugBridge = new AndroidDebugBridge(FilesDownloader, prompter, ExitApplication);
             OtherFilesManager = new OtherFilesManager(Config, DebugBridge);
             ModManager = new ModManager(Config, DebugBridge, OtherFilesManager);
@@ -114,6 +115,7 @@ namespace QuestPatcher.Core
             DebugBridge.Dispose();
             CoreModManager.Dispose();
             DowngradeManger.Dispose();
+            DownloadMirrorManager.Dispose();
 
             try
             {
@@ -143,8 +145,8 @@ namespace QuestPatcher.Core
 
             CoreModManager.Init();
             DowngradeManger.Init();
+            DownloadMirrorManager.Init();
             await InstallManager.LoadInstalledApp();
-            await DownloadMirrorUtil.Instance.Refresh();
             if (InstallManager.InstalledApp!.ModLoader == ModLoader.Scotland2)
             {
                 await PatchingManager.SaveScotland2(false); // Make sure that Scotland2 is saved to the right location

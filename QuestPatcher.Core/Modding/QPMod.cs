@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using QuestPatcher.Core.Utils;
 using QuestPatcher.QMod;
 using Serilog;
 
@@ -331,8 +330,7 @@ namespace QuestPatcher.Core.Modding
                 Log.Information("Downloading dependency {DependencyId} . . .", dependency.Id);
                 try
                 {
-                    var url = _provider.UseMirrorDownload ? await DownloadMirrorUtil.Instance.GetMirrorUrl(dependency.DownloadUrlString) : dependency.DownloadUrlString;
-                    await _filesDownloader.DownloadUri(url, downloadFile.Path, dependency.Id);
+                    await _filesDownloader.DownloadUri(dependency.DownloadUrlString, downloadFile.Path, dependency.Id);
                 }
                 catch (FileDownloadFailedException ex)
                 {

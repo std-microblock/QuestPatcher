@@ -30,7 +30,6 @@ namespace QuestPatcher.Core.Modding
         private readonly Config _config;
         private readonly AndroidDebugBridge _debugBridge;
         private readonly ExternalFilesDownloader _filesDownloader;
-        public bool UseMirrorDownload => _config.UseMirrorDownload;
 
         public QModProvider(ModManager modManager, Config config, AndroidDebugBridge debugBridge, ExternalFilesDownloader filesDownloader)
         {

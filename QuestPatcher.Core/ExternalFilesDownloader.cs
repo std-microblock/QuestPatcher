@@ -223,13 +223,16 @@ namespace QuestPatcher.Core
 
         private readonly Config _config;
         private readonly SpecialFolders _specialFolders;
+        private readonly DownloadMirrorManager _downloadMirrorManager;
         private readonly HttpClient _httpClient = new();
         private readonly bool _isUnix = OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
 
-        public ExternalFilesDownloader(Config config, SpecialFolders specialFolders)
+        public ExternalFilesDownloader(Config config, SpecialFolders specialFolders,
+            DownloadMirrorManager downloadMirrorManager)
         {
             _config = config;
             _specialFolders = specialFolders;
+            _downloadMirrorManager = downloadMirrorManager;
             _fullyDownloadedPath = Path.Combine(_specialFolders.ToolsFolder, "completedDownloads.dat");
 
             // Load which dependencies have been fully downloaded from disk
@@ -571,7 +574,7 @@ namespace QuestPatcher.Core
             Log.Debug("Downloading {Url}\n To {SaveName}", url, saveName);
             if (_config.UseMirrorDownload)
             {
-                url = await DownloadMirrorUtil.Instance.GetMirrorUrl(url);
+                url = await _downloadMirrorManager.GetMirrorUrl(url);
             }
 
             try
