@@ -113,6 +113,7 @@ namespace QuestPatcher.Core
             // Kill active ADB processes to ensure that the temp folder can be deleted.
             DebugBridge.Dispose();
             CoreModManager.Dispose();
+            DowngradeManger.Dispose();
 
             try
             {
