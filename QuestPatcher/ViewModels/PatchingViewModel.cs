@@ -25,6 +25,22 @@ namespace QuestPatcher.ViewModels
 
         public string? CustomSplashPath => Config.PatchingOptions.CustomSplashPath;
 
+        public ModLoader? PreferredModLoader
+        {
+            get
+            {
+                var version = _installManager.InstalledApp?.SemVersion;
+                if (version == null)
+                {
+                    return null;
+                }
+
+                return version > SharedConstants.BeatSaberLastQuestLoaderVersion
+                    ? ModLoader.Scotland2
+                    : ModLoader.QuestLoader;
+            }
+        }
+
         public Config Config { get; }
 
         public OperationLocker Locker { get; }
