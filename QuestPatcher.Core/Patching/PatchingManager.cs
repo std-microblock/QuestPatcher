@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 using QuestPatcher.Axml;
+using QuestPatcher.Core.CoreMod;
+using QuestPatcher.Core.Downgrading;
+using QuestPatcher.Core.Downgrading.Models;
 using QuestPatcher.Core.Modding;
 using QuestPatcher.Core.Models;
 using QuestPatcher.Zip;
@@ -56,6 +59,8 @@ namespace QuestPatcher.Core.Patching
         private readonly IUserPrompter _prompter;
         private readonly ModManager _modManager;
         private readonly InstallManager _installManager;
+        private readonly CoreModsManager _coreModsManager;
+        private readonly DowngradeManger _downgradeManger;
 
         private readonly string _patchedApkPath;
         private Dictionary<string, Dictionary<string, string>>? _libUnityIndex;
@@ -590,7 +595,7 @@ namespace QuestPatcher.Core.Patching
         /// Begins patching the currently installed APK, then uninstalls it and installs the modded copy. (must be pulled before calling this)
         /// <exception cref="FileDownloadFailedException">If downloading files necessary to mod the APK fails</exception>
         /// </summary>
-        public async Task PatchApp()
+        public async Task PatchApp(AppDiff? downgradeTo = null)
         {
             if (InstalledApp == null)
             {

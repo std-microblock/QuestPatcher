@@ -18,7 +18,7 @@ namespace QuestPatcher.ViewModels
 
             if (!Config.ExpertMode)
             {
-                Config.PatchingOptions.ModLoader = patchingViewModel.PreferredModLoader ?? ModLoader.Scotland2;
+                Config.PatchingOptions.ModLoader = patchingViewModel.PreferredModLoader;
             }
         }
 

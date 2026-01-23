@@ -175,9 +175,7 @@ namespace QuestPatcher.Core
             if (!app.IsModded && app.SemVersion != null)
             {
                 // Change the mod loader in patching options to the correct one for the version of beat saber
-                _config.PatchingOptions.ModLoader = app.SemVersion > SharedConstants.BeatSaberLastQuestLoaderVersion
-                    ? ModLoader.Scotland2
-                    : ModLoader.QuestLoader;
+                _config.PatchingOptions.ModLoader = BeatSaberUtils.GetDefaultModLoader(app.SemVersion);
             }
             InstalledApp = app;
         }

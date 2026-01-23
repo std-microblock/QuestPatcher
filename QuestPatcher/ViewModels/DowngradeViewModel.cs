@@ -67,7 +67,7 @@ namespace QuestPatcher.ViewModels
             IList<string> paths;
             try
             {
-                paths = await _downgradeManger.GetAvailablePathAsync(_installManager.InstalledApp?.Version);
+                paths = await _downgradeManger.GetAvailableVersionsAsync(_installManager.InstalledApp?.Version);
                 Log.Debug("Available paths: {Paths}", paths);
             }
             catch (Exception e)

@@ -104,12 +104,13 @@ namespace QuestPatcher.Core.Models
                 {
                     _expertMode = value;
                     NotifyPropertyChanged();
-                    if (!value)
-                    {
-                        PatchingOptions.CleanUpMods = true;
-                        PatchingOptions.AutoDowngrade = true;
-                        PatchingOptions.InstallCoreMods = true;
-                    }
+                }
+
+                if (!value)
+                {
+                    PatchingOptions.CleanUpMods = true;
+                    PatchingOptions.AllowDowngrade = true;
+                    PatchingOptions.InstallCoreMods = true;
                 }
             }
         }

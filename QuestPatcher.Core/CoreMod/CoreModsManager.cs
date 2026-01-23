@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -53,6 +54,18 @@ namespace QuestPatcher.Core.CoreMod
             }
 
             return Array.Empty<CoreModData>();
+        }
+
+        public async Task<bool> IsCoreModsAvailableAsync(string version, bool refresh = false)
+        {
+            var coreMods = await GetCoreModsAsync(version, refresh);
+            return coreMods.Count > 0;
+        }
+
+        public async Task<IReadOnlySet<string>> GetAllAvailableVersionsAsync(bool refresh = false)
+        {
+            var data = await GetOrLoadAsync(refresh);
+            return data.Keys.ToHashSet();
         }
 
         /// <summary>

@@ -13,7 +13,12 @@
   <Panel>
     <DockPanel IsVisible="{Binding !IsPatchingInProgress}">
       <StackPanel Margin="20" Spacing="15" Orientation="Vertical" DockPanel.Dock="Top">
-          <ToggleButton IsChecked="{Binding Config.ShowPatchingOptions}" VerticalAlignment="Top" HorizontalAlignment="Right" Content="{x:Static res:Strings.Patching_PatchingOptions}"/>
+        <StackPanel Spacing="15" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
+          <ToggleButton IsChecked="{Binding Config.PatchingOptions.AutoDowngrade}" Content="自动降级"
+                        IsEnabled="{Binding Config.PatchingOptions.AllowDowngrade}" />
+          <ToggleButton IsChecked="{Binding Config.ShowPatchingOptions}"
+                        Content="{x:Static res:Strings.Patching_PatchingOptions}" />
+        </StackPanel>
           <StackPanel Spacing="10" IsVisible="{Binding Config.ShowPatchingOptions}">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalAlignment="Top"
                           Background="{DynamicResource PatchingOptionsBackground}">
@@ -57,7 +62,7 @@
                 <TextBlock Text="高级设置" VerticalAlignment="Center" Padding="5 0" />
                 <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.CleanUpMods}" Content="清理Mod" />
                 <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.InstallCoreMods}" Content="安装核心Mod" />
-                <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.AutoDowngrade}" Content="自动降级" />
+                <ToggleSwitch IsChecked="{Binding Config.PatchingOptions.AllowDowngrade}" Content="允许降级" />
                 <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
                   <TextBlock FontSize="14" Text="Mod注入器" VerticalAlignment="Center">
                     <TextBlock.Styles>

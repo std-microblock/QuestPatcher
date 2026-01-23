@@ -1,0 +1,49 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:QuestPatcher.ViewModels"
+        xmlns:res="clr-namespace:QuestPatcher.Resources"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="225"
+        MinWidth="300" Width="400" SizeToContent="Height"
+        x:Class="QuestPatcher.Views.VersionSelectWindow"
+        Icon="/Assets/questpatcher-logo.ico"
+        Title="选择版本"
+        Background="{x:Null}"
+        ExtendClientAreaToDecorationsHint="true"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        RequestedThemeVariant="{DynamicResource ThemeVariant}">
+
+  <Design.DataContext>
+    <viewModels:VersionSelectViewModel />
+  </Design.DataContext>
+
+  <DockPanel HorizontalAlignment="Stretch">
+    <ExperimentalAcrylicBorder DockPanel.Dock="Bottom" Material="{DynamicResource MainBackgroundMaterial}">
+      <DockPanel Margin="20">
+        <TextBlock DockPanel.Dock="Top" Padding="8" HorizontalAlignment="Center" TextDecorations="Underline"
+                   Text="选择版本" />
+        <StackPanel DockPanel.Dock="Bottom" Margin="0 10 0 0" Orientation="Horizontal" Spacing="10"
+                    HorizontalAlignment="Center">
+          <Button Padding="8" Content="{x:Static res:Strings.Patching_StartPatching}" Command="{Binding OnSelect}" />
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Spacing="20" Margin="0 10" HorizontalAlignment="Center">
+          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" FontSize="14" TextWrapping="Wrap"
+                     Text="{Binding Message}" />
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+            <TextBlock Text="选择降级版本:" VerticalAlignment="Center" />
+            <ComboBox SelectedItem="{Binding SelectedVersion}"
+                      ItemsSource="{Binding Versions}"
+                      HorizontalAlignment="Center" MinWidth="160">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding ToVersion, FallbackValue=不降级}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </ExperimentalAcrylicBorder>
+  </DockPanel>
+</Window>

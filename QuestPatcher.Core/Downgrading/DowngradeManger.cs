@@ -63,17 +63,23 @@ namespace QuestPatcher.Core.Downgrading
             return new DowngradeIndex(paths, checksums);
         }
 
-        public async Task<IList<string>> GetAvailablePathAsync(string? fromVersion)
+        public async Task<IReadOnlyList<AppDiff>> GetAvailablePathAsync(string? fromVersion)
         {
             if (string.IsNullOrWhiteSpace(fromVersion))
             {
-                return Array.Empty<string>();
+                return Array.Empty<AppDiff>();
             }
 
             var index = await GetOrLoadAsync(false);
             return index.Paths.TryGetValue(fromVersion, out var paths)
-                ? paths.Select(path => path.ToVersion).ToList()
-                : Array.Empty<string>();
+                ? paths.AsReadOnly()
+                : Array.Empty<AppDiff>();
+        }
+
+        public async Task<IList<string>> GetAvailableVersionsAsync(string? fromVersion)
+        {
+            var paths = await GetAvailablePathAsync(fromVersion);
+            return paths.Select(path => path.ToVersion).ToList();
         }
         
         /// <summary>

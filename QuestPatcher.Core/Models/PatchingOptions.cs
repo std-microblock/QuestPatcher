@@ -78,6 +78,18 @@ namespace QuestPatcher.Core.Models
             }
         }
 
+        private bool _allowDowngrade = true;
+
+        public bool AllowDowngrade
+        {
+            get => _allowDowngrade;
+            set
+            {
+                _allowDowngrade = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         private bool _autoDowngrade = true;
 
         public bool AutoDowngrade
