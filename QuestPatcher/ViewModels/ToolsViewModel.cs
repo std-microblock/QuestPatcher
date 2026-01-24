@@ -54,7 +54,7 @@ namespace QuestPatcher.ViewModels
         public bool PatchDowngradeAvailable =>
             DowngradeManger.DowngradeFeatureAvailable(_installManager.InstalledApp, Config.AppId);
 
-        public bool RepatchAvailable => _installManager.InstalledApp?.IsModded == true;
+        public bool RepatchAvailable => _installManager.InstalledApp?.ModLoader != null;
 
         public bool ExpertModeEnabled
         {

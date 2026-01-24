@@ -609,7 +609,7 @@ namespace QuestPatcher.Core.Patching
             }
 
 
-            bool repatch = app.IsModded;
+            bool repatch = app.ModLoader != null;
 
 
             if (!repatch && downgradeTo != null)

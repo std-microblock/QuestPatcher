@@ -169,6 +169,8 @@ namespace QuestPatcher.ViewModels
                 return;
             }
 
+            bool repatch = apk.ModLoader != null;
+
             if (!Config.PatchingOptions.CleanUpMods)
             {
                 var builder = new DialogBuilder
@@ -236,14 +238,15 @@ namespace QuestPatcher.ViewModels
             try
             {
                 var selection = new SelectionData { Proceed = true, Downgrade = null };
-                if (Config.PatchingOptions.AllowDowngrade)
+                if (!repatch && Config.PatchingOptions.AllowDowngrade)
                 {
                     // find out exactly what version to patch or not patching at all
                     selection = await FindPreferredVersion(apk);
                 }
 
                 // double check core mods availability
-                if (selection.Proceed && await IsCoreModsAvailable(selection.Downgrade?.ToVersion ?? apk.Version))
+                if (selection.Proceed &&
+                    (repatch || await IsCoreModsAvailable(selection.Downgrade?.ToVersion ?? apk.Version)))
                 {
                     Log.Debug("Proceed with patching, AppDiff: {AppDiff}", selection.Downgrade);
                     await _patchingManager.PatchApp(selection.Downgrade);
