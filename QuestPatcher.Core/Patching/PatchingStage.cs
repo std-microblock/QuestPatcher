@@ -6,12 +6,14 @@
     public enum PatchingStage
     {
         NotStarted,
+        Downgrading,
         FetchingFiles,
         MovingToTemp,
         Patching,
         Signing,
         UninstallingOriginal,
         InstallingModded,
-        CleanUpMods
+        CleanUpMods,
+        InstallCoreMods
     }
 }

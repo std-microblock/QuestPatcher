@@ -15,6 +15,11 @@ namespace QuestPatcher.ViewModels
             _patchingViewModel = patchingViewModel;
             Config = config;
             _window = window;
+
+            if (!Config.ExpertMode)
+            {
+                Config.PatchingOptions.ModLoader = patchingViewModel.PreferredModLoader;
+            }
         }
 
         public void RepatchApp()

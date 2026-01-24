@@ -77,7 +77,7 @@ namespace QuestPatcher.Core
         /// </summary>
         /// <param name="apk">The APK to check for modloaders</param>
         /// <returns>The modloader detected, if any</returns>
-        private async Task<ModLoader?> GetModLoader(ApkZip apk)
+        private static async Task<ModLoader?> GetModLoader(ApkZip apk)
         {
             // If APK is patched with a legacy questloader tag
             if (QuestLoaderTagNames.Any(tag => apk.ContainsFile(tag)))
@@ -121,7 +121,7 @@ namespace QuestPatcher.Core
         /// </summary>
         /// <param name="apk">The APK to find the version of</param>
         /// <returns>The version of the APK</returns>
-        private async Task<string> GetApkVersion(ApkZip apk)
+        private static async Task<string> GetApkVersion(ApkZip apk)
         {
             // Need a seekable stream to load AXML
             using var memStream = new MemoryStream();
@@ -149,8 +149,20 @@ namespace QuestPatcher.Core
         private async Task CheckModdingStatus()
         {
             Log.Information("Checking APK modding status");
+            var app = await LoadApkInfo(_currentlyInstalledPath);
+            Log.Information("APK is {Bit} bit", app.Is64Bit ? "64" : "32");
+            if (!app.IsModded && app.SemVersion != null)
+            {
+                // Change the mod loader in patching options to the correct one for the version of beat saber
+                _config.PatchingOptions.ModLoader = BeatSaberUtils.GetDefaultModLoader(app.SemVersion);
+            }
 
-            using var apkStream = File.OpenRead(_currentlyInstalledPath);
+            InstalledApp = app;
+        }
+
+        internal static async Task<ApkInfo> LoadApkInfo(string apkPath)
+        {
+            await using var apkStream = File.OpenRead(apkPath);
             await using var apk = await ApkZip.OpenAsync(apkStream);
 
             if (apk.ContainsFile("lib/arm64-v8a/libfrda.so") || apk.ContainsFile("lib/arm64-v8a/libscript.so"))
@@ -169,17 +181,8 @@ namespace QuestPatcher.Core
                 throw new PatchingException("The loaded APK did not contain a 32 or 64 bit libil2cpp for patching. This either means that it is of an unsupported architecture, or it is not an il2cpp unity app."
                     + " Please complain to Laurie if you're annoyed that QuestPatcher doesn't support unreal.");
             }
-            Log.Information("APK is " + (is64Bit ? "64" : "32") + " bit");
 
-            var app = new ApkInfo(version, modloader, is64Bit, _currentlyInstalledPath);
-            if (!app.IsModded && app.SemVersion != null)
-            {
-                // Change the mod loader in patching options to the correct one for the version of beat saber
-                _config.PatchingOptions.ModLoader = app.SemVersion > SharedConstants.BeatSaberLastQuestLoaderVersion
-                    ? ModLoader.Scotland2
-                    : ModLoader.QuestLoader;
-            }
-            InstalledApp = app;
+            return new ApkInfo(version, modloader, is64Bit, apkPath);
         }
 
         /// <summary>

@@ -966,7 +966,7 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cleanling up old mods.
+        ///   Looks up a localized string similar to (7/8) Cleanling up old mods.
         /// </summary>
         public static string PatchingStage_CleanUpMods {
             get {
@@ -975,7 +975,16 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (1/6) Downloading files needed to mod the APK .
+        ///   Looks up a localized string similar to (0/8) Downgrading the game.
+        /// </summary>
+        public static string PatchingStage_Downgrading {
+            get {
+                return ResourceManager.GetString("PatchingStage_Downgrading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (1/8) Downloading files needed to mod the APK .
         /// </summary>
         public static string PatchingStage_FetchFiles {
             get {
@@ -984,7 +993,16 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (6/6) Installing modded APK.
+        ///   Looks up a localized string similar to (8/8) Installing core mods.
+        /// </summary>
+        public static string PatchingStage_InstallCoreMods {
+            get {
+                return ResourceManager.GetString("PatchingStage_InstallCoreMods", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (6/8) Installing modded APK.
         /// </summary>
         public static string PatchingStage_InstallModded {
             get {
@@ -993,7 +1011,7 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (2/6) Moving APK to temporary location.
+        ///   Looks up a localized string similar to (2/8) Moving APK to temporary location.
         /// </summary>
         public static string PatchingStage_MoveToTemp {
             get {
@@ -1011,7 +1029,7 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (3/6) Modifying APK files to support mods.
+        ///   Looks up a localized string similar to (3/8) Modifying APK files to support mods.
         /// </summary>
         public static string PatchingStage_Patching {
             get {
@@ -1020,7 +1038,7 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (4/6) Signing APK.
+        ///   Looks up a localized string similar to (4/8) Signing APK.
         /// </summary>
         public static string PatchingStage_Signing {
             get {
@@ -1029,7 +1047,7 @@ namespace QuestPatcher.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (5/6) Uninstalling original APK to install modded APK.
+        ///   Looks up a localized string similar to (5/8) Uninstalling original APK to install modded APK.
         /// </summary>
         public static string PatchingStage_UninstallOriginal {
             get {

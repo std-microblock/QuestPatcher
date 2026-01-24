@@ -26,15 +26,18 @@ namespace QuestPatcher.Core.Downgrading
         private readonly InstallManager _installManager;
         private readonly ExternalFilesDownloader _filesDownloader;
         private readonly AndroidDebugBridge _debugBridge;
+        private readonly IUserPrompter _prompter;
         private readonly string _outputFolder;
         private readonly HttpClient _httpClient = new();
 
-        public DowngradeManger(Config config, InstallManager installManager, ExternalFilesDownloader filesDownloader, AndroidDebugBridge debugBridge, SpecialFolders specialFolders)
+        public DowngradeManger(Config config, InstallManager installManager, ExternalFilesDownloader filesDownloader,
+            AndroidDebugBridge debugBridge, SpecialFolders specialFolders, IUserPrompter prompter)
         {
             _config = config;
             _installManager = installManager;
             _filesDownloader = filesDownloader;
             _debugBridge = debugBridge;
+            _prompter = prompter;
             _outputFolder = specialFolders.DowngradeFolder;
         }
 
@@ -57,32 +60,33 @@ namespace QuestPatcher.Core.Downgrading
 
             var paths = appDiffs
                 .GroupBy(diff => diff.FromVersion)
-                .ToDictionary(g => g.Key, g => g.ToList());
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(diff => diff.ToSemVer).ToList());
 
             Log.Debug("Loaded {Diffs} app diffs and {Checksums} checksums", appDiffs.Count, checksums.Count);
             return new DowngradeIndex(paths, checksums);
         }
 
-        public async Task<IList<string>> GetAvailablePathAsync(string? fromVersion)
+        public async Task<IReadOnlyList<AppDiff>> GetAvailablePathAsync(string? fromVersion, bool refresh = false)
         {
             if (string.IsNullOrWhiteSpace(fromVersion))
             {
-                return Array.Empty<string>();
+                return Array.Empty<AppDiff>();
             }
 
-            var index = await GetOrLoadAsync(false);
+            var index = await GetOrLoadAsync(refresh);
             return index.Paths.TryGetValue(fromVersion, out var paths)
-                ? paths.Select(path => path.ToVersion).ToList()
-                : Array.Empty<string>();
+                ? paths.AsReadOnly()
+                : Array.Empty<AppDiff>();
         }
         
         /// <summary>
         /// Downgrade the installed app to the specified version.
         /// </summary>
-        /// <param name="toVersion">The version to downgrade to.</param>
+        /// <param name="appDiff">The downgrade appDiff</param>
+        /// <returns>True if downgrade succeed, false if canceled</returns>
         /// <exception cref="FileDownloadFailedException">When necessary files needed for downgrade failed to download</exception>
         /// <exception cref="DowngradeException">When downgrade failed</exception>
-        public async Task DowngradeApp(string toVersion)
+        public async Task<bool> DowngradeApp(AppDiff appDiff)
         {
             var apk = _installManager.InstalledApp;
             if (apk == null)
@@ -91,82 +95,124 @@ namespace QuestPatcher.Core.Downgrading
                 throw new DowngradeException("App is not installed");
             }
 
-            string fromVersion = apk.Version;
-            var availablePaths = (await GetOrLoadAsync(false)).Paths;
-            if (!availablePaths.TryGetValue(fromVersion, out var paths))
+            //Sanity check
+            if (appDiff.FromVersion != apk.Version)
             {
-                Log.Warning("No downgrade path found for {FromVersion}", fromVersion);
-                throw new DowngradeException("No downgrade path found");
+                Log.Warning("Apk version {Version} does not match with downgrade path's FromVersion {FromVersion}",
+                    apk.Version, appDiff.FromVersion);
+                throw new DowngradeException("Apk version mismatch");
             }
 
-            var path = paths.FirstOrDefault(p => p.ToVersion == toVersion);
-            if (path == null)
+            Log.Information("Starting downgrade from {FromVersion} to {ToVersion}", appDiff.FromVersion,
+                appDiff.ToVersion);
+
+            if (!await PrepareFiles(apk, appDiff))
             {
-                Log.Warning("No downgrade path found from {FromVersion} to {ToVersion}", fromVersion, toVersion);
-                throw new DowngradeException("Cannot downgrade to specified version");
+                Log.Warning("Prepare files did not succeed, not downgrading");
+                return false;
             }
 
-            await DowngradeApp(apk, path);
+            string apkPath = await PatchFiles(apk, appDiff);
+            await ReplaceAppWithDowngraded(apkPath, appDiff.ObbDiffs);
+            return true;
         }
 
-        private async Task DowngradeApp(ApkInfo apk, AppDiff appDiff)
+        /// <summary>
+        ///     Download and verify all related files
+        /// </summary>
+        internal async Task<bool> PrepareFiles(ApkInfo apk, AppDiff appDiff)
         {
-            Log.Information("Starting downgrade from {FromVersion} to {ToVersion}", appDiff.FromVersion, appDiff.ToVersion);
-            
             // Check apk crc
             if (!await HashUtil.CheckCrc32Async(apk.Path, appDiff.ApkDiff.FileCrc))
             {
                 Log.Error("Apk file has incorrect CRC, is the apk not original?");
                 throw new DowngradeException("Apk file is corrupted");
             }
-            
-            // Download and apply diffs
-            string apkPath = await PatchFile(appDiff.ApkDiff, apk.Path);
-            
+
+            // download apk diff
+            if (!await DownloadAndVerifyDiffFile(appDiff.ApkDiff))
+            {
+                return false;
+            }
+
+            // obb files
             foreach (var fileDiff in appDiff.ObbDiffs)
             {
-                bool result = await CheckAndDownloadObbFile(fileDiff);
-                if (!result)
+                // download the source obb file from device
+                string? sourcePath;
+                try
                 {
-                    Log.Error("Obb file {FileName} not found or is corrupted", fileDiff.FileName);
-                    throw new DowngradeException("Obb file not found or is corrupted");
+                    sourcePath = await _installManager.DownloadObbFile(fileDiff.FileName, _outputFolder);
                 }
-                
-                await PatchFile(fileDiff);
+                catch (Exception e)
+                {
+                    Log.Error(e, "Failed to download obb file from device {ObbName}", fileDiff.FileName);
+                    throw new DowngradeException("Failed to download obb file from device", e);
+                }
+
+                if (sourcePath == null)
+                {
+                    Log.Error("Obb file {FileName} not found on the device", fileDiff.FileName);
+                    throw new DowngradeException("Obb file not found on the device");
+                }
+
+                // verify the source obb file
+                bool match = await HashUtil.CheckCrc32Async(sourcePath, fileDiff.FileCrc);
+                if (!match)
+                {
+                    Log.Error("Source obb file {FileName} has incorrect CRC", fileDiff.FileName);
+                    throw new DowngradeException("Obb file is corrupted");
+                }
+
+                // Download the diff file
+                if (!await DownloadAndVerifyDiffFile(fileDiff))
+                {
+                    return false;
+                }
             }
-            
-            // Replace the app with the downgraded version
-            await ReplaceAppWithDowngraded(apkPath, appDiff.ObbDiffs);
+
+            return true;
+        }
+
+        private async Task<bool> DownloadAndVerifyDiffFile(FileDiff fileDiff)
+        {
+            string diffPath = Path.Combine(_outputFolder, fileDiff.DiffName);
+            string uri = $"{DiffUrlBase}{fileDiff.DiffName}";
+            await _filesDownloader.DownloadUri(uri, diffPath);
+            // check diff file crc
+            if (Data!.Checksums.TryGetValue(fileDiff.DiffName, out uint diffCrc))
+            {
+                if (!await HashUtil.CheckCrc32Async(diffPath, diffCrc))
+                {
+                    Log.Error("Diff file {DiffName} has incorrect CRC", fileDiff.DiffName);
+                    throw new DowngradeException("Diff file is corrupted");
+                }
+            }
+            else
+            {
+                Log.Warning("CRC for diff file {DiffName} is unknown", fileDiff.DiffName);
+                return await _prompter.PromptMissingDowngradeAssetCrc(fileDiff.DiffName);
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Check the source file exists.
-        /// Download the file from device if it exists.
-        /// TODO check the crc of the file
         /// </summary>
-        /// <param name="fileDiff">File diff index</param>
-        /// <returns>Whether the file successfully downloaded</returns>
-        private async Task<bool> CheckAndDownloadObbFile(FileDiff fileDiff)
+        /// <param name="apk"></param>
+        /// <param name="appDiff"></param>
+        /// <returns></returns>
+        internal async Task<string> PatchFiles(ApkInfo apk, AppDiff appDiff)
         {
-            string? path;
-            try
+            // patch apk
+            string apkPath = await PatchFile(appDiff.ApkDiff, apk.Path);
+            // patch obb
+            foreach (var fileDiff in appDiff.ObbDiffs)
             {
-                path = await _installManager.DownloadObbFile(fileDiff.FileName, _outputFolder);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "Failed to download obb file {ObbName}", fileDiff.FileName);
-                throw new DowngradeException("Failed to download obb file", e);
+                await PatchFile(fileDiff);
             }
 
-            if (path == null) return false;
-            bool match = await HashUtil.CheckCrc32Async(path, fileDiff.FileCrc);
-            if (!match)
-            {
-                Log.Error("Obb file {FileName} has incorrect CRC", fileDiff.FileName);
-                return false;
-            }
-            return true;
+            return apkPath;
         }
         
         private async Task<string> PatchFile(FileDiff fileDiff, string? sourcePathOverride = null)
@@ -175,24 +221,7 @@ namespace QuestPatcher.Core.Downgrading
             string diffPath = Path.Combine(_outputFolder, fileDiff.DiffName);
             string sourcePath = sourcePathOverride ?? Path.Combine(_outputFolder, fileDiff.FileName);
             string outputPath = Path.Combine(_outputFolder, fileDiff.OutputFileName);
-            
-            // Download the diff file
-            string uri = $"{DiffUrlBase}{fileDiff.DiffName}";
-            _ = await _filesDownloader.DownloadUri(uri, diffPath);
-            // check diff file crc
-            if (Data!.Checksums.TryGetValue(fileDiff.DiffName, out uint diffCrc))
-            {
-                if (!await HashUtil.CheckCrc32Async(diffPath, diffCrc))
-                {
-                    Log.Error("Diff file {DiffName} has incorrect CRC", fileDiff.DiffName);
-                    throw new DowngradeException("Diff file is corrupted");
-                }   
-            }
-            else
-            {
-                Log.Warning("CRC for diff file {DiffName} is unknown, will proceed regardless", fileDiff.DiffName);
-            }
-
+            //TODO Can the output file have the same name as the source?
             await FilePatcher.PatchFileAsync(sourcePath, outputPath, diffPath);
             
             // check output file crc
@@ -206,7 +235,7 @@ namespace QuestPatcher.Core.Downgrading
         }
         
         // This has a lot of copy-pasted code from PatchingManager.
-        // Refactor to a shared method on InstallManager may cause a lot of future upstream merge conflicts
+        // Refactor to a shared method in InstallManager may cause a lot of future upstream merge conflicts
         private async Task ReplaceAppWithDowngraded(string apkPath, IList<FileDiff> obbDiffs)
         {
             // Close any running instance of the app.
@@ -279,28 +308,38 @@ namespace QuestPatcher.Core.Downgrading
                     Log.Error(ex, "Failed to restore obb backup");
                 }
             }
-            
-            // Push patched obb files
 
-            foreach (var obbDiff in obbDiffs)
+            try
             {
-                string obbPath = Path.Combine(_outputFolder, obbDiff.OutputFileName);
-                string obbName = Path.GetFileName(obbPath);
-                Log.Information("Pushing patched obb file {ObbName}", obbName);
-                try
-                {
-                    await _installManager.ReplaceObbFile(obbDiff.FileName, obbDiff.OutputFileName, obbPath);
-                }
-                catch (Exception e)
-                {
-                    Log.Error("Failed to push obb file {ObbName}", obbName);
-                    throw new DowngradeException("Failed to push patched obb file", e);
-                }
+                // Push patched obb files
+                Log.Information("Pushing patched obb files");
+                await PushObbFiles(obbDiffs);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to push obb files");
+                throw new DowngradeException("Failed to push patched obb files", e);
             }
             
             await _installManager.NewApkInstalled(apkPath);
 
             Log.Information("App Downgraded successfully");
+        }
+
+        /// <summary>
+        ///     Push
+        /// </summary>
+        /// <param name="obbDiffs"></param>
+        /// <exception cref="DowngradeException"></exception>
+        internal async Task PushObbFiles(IList<FileDiff> obbDiffs)
+        {
+            foreach (var obbDiff in obbDiffs)
+            {
+                string obbPath = Path.Combine(_outputFolder, obbDiff.OutputFileName);
+                string obbName = Path.GetFileName(obbPath);
+                Log.Debug("Pushing patched obb file {ObbName}", obbName);
+                await _installManager.ReplaceObbFile(obbDiff.FileName, obbDiff.OutputFileName, obbPath);
+            }
         }
 
         /// <summary>

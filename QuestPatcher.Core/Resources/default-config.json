@@ -14,10 +14,14 @@
     "passthrough": false,
     "bodyTracking": false,
     "customSplashPath": null,
-    "cleanUpMods": true
+    "cleanUpMods": true,
+    "installCoreMods": true,
+    "allowDowngrade": true,
+    "autoDowngrade": false
   },
   "showPatchingOptions": false,
   "useMirrorDownload": true,
   "externalModSource": "BSQModsCN",
+  "expertMode": false,
   "selectedThemeName": "Dark"
 }

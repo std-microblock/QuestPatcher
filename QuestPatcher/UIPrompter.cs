@@ -7,9 +7,9 @@ using QuestPatcher.Core;
 using QuestPatcher.Core.Models;
 using QuestPatcher.Resources;
 using QuestPatcher.Services;
+using QuestPatcher.Utils;
 using QuestPatcher.ViewModels;
 using QuestPatcher.Views;
-using QuestPatcher.Utils;
 
 namespace QuestPatcher
 {
@@ -230,6 +230,14 @@ namespace QuestPatcher
             await window.ShowDialog(_mainWindow!);
 
             return viewModel.SelectedDevice;
+        }
+
+        public Task<bool> PromptMissingDowngradeAssetCrc(string fileName)
+        {
+            var builder = new DialogBuilder { Title = "CRC数据缺失", Text = $"由于CRC数据缺失无法校验文件\n{fileName}\n要继续降级吗？" };
+            builder.OkButton.Text = Strings.Generic_Continue;
+
+            return builder.OpenDialogue(_mainWindow);
         }
     }
 }

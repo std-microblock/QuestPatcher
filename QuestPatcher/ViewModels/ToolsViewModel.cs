@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using QuestPatcher.Core;
 using QuestPatcher.Core.Downgrading;
@@ -51,13 +50,19 @@ namespace QuestPatcher.ViewModels
                 }
             }
         }
-        
-        public bool PatchDowngradeAvailable
+
+        public bool PatchDowngradeAvailable =>
+            DowngradeManger.DowngradeFeatureAvailable(_installManager.InstalledApp, Config.AppId);
+
+        public bool RepatchAvailable => _installManager.InstalledApp?.ModLoader != null;
+
+        public bool ExpertModeEnabled
         {
-            get
+            get => Config.ExpertMode;
+            set
             {
-                var app = _installManager.InstalledApp;
-                return Locker.IsFree && DowngradeManger.DowngradeFeatureAvailable(app, Config.AppId);
+                Config.ExpertMode = value;
+                this.RaisePropertyChanged();
             }
         }
 
@@ -102,19 +107,12 @@ namespace QuestPatcher.ViewModels
                 this.RaisePropertyChanged(nameof(AdbButtonText));
             };
             
-            Locker.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(Locker.IsFree))
-                {
-                    this.RaisePropertyChanged(nameof(PatchDowngradeAvailable));
-                }
-            };
-            
             _installManager.PropertyChanged += (_, args) =>
             {
                 if (args.PropertyName == nameof(_installManager.InstalledApp))
                 {
                     this.RaisePropertyChanged(nameof(PatchDowngradeAvailable));
+                    this.RaisePropertyChanged(nameof(RepatchAvailable));
                     SubscribeToApkEvents();
                 }
             };
@@ -129,9 +127,10 @@ namespace QuestPatcher.ViewModels
             
             apk.PropertyChanged += (_, args) =>
             {
-                if (args.PropertyName == nameof(ApkInfo.IsModded) || args.PropertyName == nameof(ApkInfo.SemVersion))
+                if (args.PropertyName == nameof(ApkInfo.IsModded))
                 {
                     this.RaisePropertyChanged(nameof(PatchDowngradeAvailable));
+                    this.RaisePropertyChanged(nameof(RepatchAvailable));
                 }
             };
         }
@@ -392,6 +391,13 @@ namespace QuestPatcher.ViewModels
             
 
             await builder.OpenDialogue(_mainWindow);
+        }
+
+        public async Task<bool> ConfirmEnableExpertMode()
+        {
+            var builder = new DialogBuilder { Title = "启用专家模式", Text = "专家模式允许更改一些高级设置\n更改这些设置可能会导致游戏黑屏崩溃或Mod无法正常加载" };
+            builder.OkButton.Text = "启用(不推荐)";
+            return await builder.OpenDialogue(_mainWindow);
         }
     }
 }

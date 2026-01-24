@@ -1,6 +1,6 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using QuestPatcher.Core.Utils;
 using Serilog;
 using Version = SemanticVersioning.Version;
 
@@ -59,35 +59,9 @@ namespace QuestPatcher.Core.Models
             Is64Bit = is64Bit;
             Path = path;
 
-            SemVersion = ParseSemVer();
+            SemVersion = BeatSaberUtils.ParseVersion(version);
             
             Log.Debug("Parsed version {Version} to SemVer {SemVer}", Version, SemVersion);
-        }
-
-        private Version? ParseSemVer()
-        {
-            try
-            {
-                if (SemanticVersioning.Version.TryParse(Version, true, out var semVersion))
-                {
-                    return semVersion;
-                }
-                
-                string cleanedVersion = Version.Replace(" ", "");
-                int underscoreIndex = cleanedVersion.IndexOf('_');
-                if (underscoreIndex >= 0)
-                {
-                    cleanedVersion = cleanedVersion[..underscoreIndex] + "+" + cleanedVersion[(underscoreIndex + 1)..];
-                }
-
-                return SemanticVersioning.Version.TryParse(cleanedVersion, true, out semVersion) ? semVersion : null;
-
-            }
-            catch (Exception e)
-            {
-                Log.Warning(e, "Failed to parse version {Version} to SemVer", Version);
-                return null;
-            }
         }
 
         private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")

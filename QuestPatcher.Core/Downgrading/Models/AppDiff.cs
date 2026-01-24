@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using QuestPatcher.Core.Utils;
+using SemanticVersioning;
 
 namespace QuestPatcher.Core.Downgrading.Models
 {
@@ -10,6 +12,9 @@ namespace QuestPatcher.Core.Downgrading.Models
         
         [JsonPropertyName("to_version")]
         public string ToVersion { get; }
+
+        [JsonIgnore]
+        public Version? ToSemVer { get; }
         
         [JsonPropertyName("apk_diff")]
         public FileDiff ApkDiff { get; }
@@ -24,6 +29,7 @@ namespace QuestPatcher.Core.Downgrading.Models
             ToVersion = toVersion;
             ApkDiff = apkDiff;
             ObbDiffs = obbDiffs;
+            ToSemVer = BeatSaberUtils.ParseVersion(toVersion);
         }
     }
 }

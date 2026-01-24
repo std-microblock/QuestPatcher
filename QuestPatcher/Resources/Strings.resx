@@ -604,22 +604,22 @@ NOTE: If you see a restore app prompt inside your headset, just press close. The
     <value>Not Started</value>
   </data>
   <data name="PatchingStage_FetchFiles" xml:space="preserve">
-    <value>(1/6) Downloading files needed to mod the APK </value>
+    <value>(1/8) Downloading files needed to mod the APK </value>
   </data>
   <data name="PatchingStage_MoveToTemp" xml:space="preserve">
-    <value>(2/6) Moving APK to temporary location</value>
+    <value>(2/8) Moving APK to temporary location</value>
   </data>
   <data name="PatchingStage_Patching" xml:space="preserve">
-    <value>(3/6) Modifying APK files to support mods</value>
+    <value>(3/8) Modifying APK files to support mods</value>
   </data>
   <data name="PatchingStage_Signing" xml:space="preserve">
-    <value>(4/6) Signing APK</value>
+    <value>(4/8) Signing APK</value>
   </data>
   <data name="PatchingStage_UninstallOriginal" xml:space="preserve">
-    <value>(5/6) Uninstalling original APK to install modded APK</value>
+    <value>(5/8) Uninstalling original APK to install modded APK</value>
   </data>
   <data name="PatchingStage_InstallModded" xml:space="preserve">
-    <value>(6/6) Installing modded APK</value>
+    <value>(6/8) Installing modded APK</value>
   </data>
   <data name="Tools_Tool_UninstallApp_Title" xml:space="preserve">
     <value>Are you sure?</value>
@@ -670,6 +670,12 @@ NOTE: If you see a restore app prompt inside your headset, just press close. The
     <value>Enable MRC workaround</value>
   </data>
   <data name="PatchingStage_CleanUpMods" xml:space="preserve">
-      <value>Cleanling up old mods</value>
+      <value>(7/8) Cleanling up old mods</value>
+  </data>
+  <data name="PatchingStage_Downgrading" xml:space="preserve">
+      <value>(0/8) Downgrading the game</value>
+  </data>
+  <data name="PatchingStage_InstallCoreMods" xml:space="preserve">
+      <value>(8/8) Installing core mods</value>
   </data>
 </root>

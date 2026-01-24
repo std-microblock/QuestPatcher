@@ -14,8 +14,12 @@ using System.Threading.Tasks;
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 using QuestPatcher.Axml;
+using QuestPatcher.Core.CoreMod;
+using QuestPatcher.Core.Downgrading;
+using QuestPatcher.Core.Downgrading.Models;
 using QuestPatcher.Core.Modding;
 using QuestPatcher.Core.Models;
+using QuestPatcher.Core.Utils;
 using QuestPatcher.Zip;
 using Serilog;
 
@@ -48,7 +52,7 @@ namespace QuestPatcher.Core.Patching
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        private ApkInfo? InstalledApp => _installManager.InstalledApp;
+        // private ApkInfo? InstalledApp => _installManager.InstalledApp;
 
         private readonly Config _config;
         private readonly AndroidDebugBridge _debugBridge;
@@ -56,11 +60,15 @@ namespace QuestPatcher.Core.Patching
         private readonly IUserPrompter _prompter;
         private readonly ModManager _modManager;
         private readonly InstallManager _installManager;
+        private readonly DowngradeManger _downgradeManger;
+        private readonly CoreModsManager _coreModsManager;
 
         private readonly string _patchedApkPath;
         private Dictionary<string, Dictionary<string, string>>? _libUnityIndex;
 
-        public PatchingManager(Config config, AndroidDebugBridge debugBridge, SpecialFolders specialFolders, ExternalFilesDownloader filesDownloader, IUserPrompter prompter, ModManager modManager, InstallManager installManager)
+        public PatchingManager(Config config, AndroidDebugBridge debugBridge, SpecialFolders specialFolders,
+            ExternalFilesDownloader filesDownloader, IUserPrompter prompter, ModManager modManager,
+            InstallManager installManager, DowngradeManger downgradeManger, CoreModsManager coreModsManager)
         {
             _config = config;
             _debugBridge = debugBridge;
@@ -70,6 +78,8 @@ namespace QuestPatcher.Core.Patching
 
             _patchedApkPath = Path.Combine(specialFolders.PatchingFolder, "patched.apk");
             _installManager = installManager;
+            _downgradeManger = downgradeManger;
+            _coreModsManager = coreModsManager;
         }
 
         private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
@@ -77,7 +87,7 @@ namespace QuestPatcher.Core.Patching
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private async Task<TempFile?> GetUnstrippedUnityPath()
+        private async Task<TempFile?> GetUnstrippedUnityPath(string appVersion)
         {
             var repoRoot =  _config.UseMirrorDownload
                 ? @"https://beatmods.wgzeyu.com/github/QuestUnstrippedUnity"
@@ -102,7 +112,6 @@ namespace QuestPatcher.Core.Patching
             }
 
             Log.Information("Checking index for unstripped libunity.so . . .");
-            Debug.Assert(InstalledApp != null);
             Debug.Assert(_libUnityIndex != null);
 
             // The versions are separated per version of each app, since apps may change their unity version
@@ -114,11 +123,12 @@ namespace QuestPatcher.Core.Patching
                 return null;
             }
 
-            availableVersions.TryGetValue(InstalledApp.Version, out string? correctVersion);
+            availableVersions.TryGetValue(appVersion, out string? correctVersion);
 
             if (correctVersion == null)
             {
-                Log.Warning("Unstripped libunity found for other versions of this app, but not {InstalledVersion}", InstalledApp.Version);
+                Log.Warning("Unstripped libunity found for other versions of this app, but not {InstalledVersion}",
+                    appVersion);
                 return null;
             }
 
@@ -590,16 +600,36 @@ namespace QuestPatcher.Core.Patching
         /// Begins patching the currently installed APK, then uninstalls it and installs the modded copy. (must be pulled before calling this)
         /// <exception cref="FileDownloadFailedException">If downloading files necessary to mod the APK fails</exception>
         /// </summary>
-        public async Task PatchApp()
+        public async Task PatchApp(AppDiff? downgradeTo = null)
         {
-            if (InstalledApp == null)
+            var app = _installManager.InstalledApp;
+            if (app == null)
             {
                 throw new NullReferenceException("Cannot patch before installed app has been checked");
             }
 
+
+            bool repatch = app.ModLoader != null;
+
+
+            if (!repatch && downgradeTo != null)
+            {
+                Log.Information("Downgrading app . . .");
+                PatchingStage = PatchingStage.Downgrading;
+                // prepare files for downgrading
+                bool prepareResult = await _downgradeManger.PrepareFiles(app, downgradeTo);
+                if (!prepareResult)
+                {
+                    return;
+                }
+
+                string apkPath = await _downgradeManger.PatchFiles(app, downgradeTo);
+                app = await InstallManager.LoadApkInfo(apkPath);
+            }
+            
             bool scotland2 = _config.PatchingOptions.ModLoader == ModLoader.Scotland2;
 
-            if (!InstalledApp.Is64Bit)
+            if (!app.Is64Bit)
             {
                 if (scotland2)
                 {
@@ -616,7 +646,7 @@ namespace QuestPatcher.Core.Patching
                 }
             }
 
-            if (InstalledApp.ModLoader == ModLoader.Unknown)
+            if (app.ModLoader == ModLoader.Unknown)
             {
                 Log.Warning("APK contains unknown modloader");
                 if (!await _prompter.PromptUnknownModLoader())
@@ -629,7 +659,7 @@ namespace QuestPatcher.Core.Patching
             PatchingStage = PatchingStage.FetchingFiles;
 
             // First make sure that we have all necessary files downloaded, including the libmain and libmodloader
-            string libsPath = InstalledApp.Is64Bit ? "lib/arm64-v8a" : "lib/armeabi-v7a";
+            string libsPath = app.Is64Bit ? "lib/arm64-v8a" : "lib/armeabi-v7a";
             string mainPath;
             string? modloaderPath;
             string? ovrPlatformSdkPath = null;
@@ -644,8 +674,7 @@ namespace QuestPatcher.Core.Patching
             }
             else
             {
-
-                if (InstalledApp.Is64Bit)
+                if (app.Is64Bit)
                 {
                     mainPath = await _filesDownloader.GetFileLocation(ExternalFileType.Main64);
                     modloaderPath = await _filesDownloader.GetFileLocation(ExternalFileType.Modloader64);
@@ -662,7 +691,7 @@ namespace QuestPatcher.Core.Patching
                 ovrPlatformSdkPath = await _filesDownloader.GetFileLocation(ExternalFileType.OvrPlatformSdk);
             }
 
-            using var libUnityFile = await GetUnstrippedUnityPath();
+            using var libUnityFile = await GetUnstrippedUnityPath(app.Version);
             if (libUnityFile == null)
             {
                 if (!await _prompter.PromptUnstrippedUnityUnavailable())
@@ -678,7 +707,7 @@ namespace QuestPatcher.Core.Patching
                 File.Delete(_patchedApkPath);
             }
 
-            await FileUtil.CopyAsync(InstalledApp.Path, _patchedApkPath);
+            await FileUtil.CopyAsync(app.Path, _patchedApkPath);
 
             // Then actually do the patching, using the APK reader, which is synchronous
             PatchingStage = PatchingStage.Patching;
@@ -769,15 +798,48 @@ namespace QuestPatcher.Core.Patching
                 }
             }
 
+            if (!repatch && downgradeTo != null)
+            {
+                // replace obbs
+                await _downgradeManger.PushObbFiles(downgradeTo.ObbDiffs);
+            }
+
             // Recreate the mod directories as they will not be present after the uninstall/backup restore
             await _modManager.CreateModDirectories();
             // When repatching, certain mods may have been deleted when the app was uninstalled, so we will check for this
             await _modManager.UpdateModsStatus();
 
-            if (_config.PatchingOptions.CleanUpMods)
+            // Don't delete mods when it is repatch
+            if (!repatch && _config.PatchingOptions.CleanUpMods)
             {
                 PatchingStage = PatchingStage.CleanUpMods;
                 await _modManager.DeleteAllMods();
+            }
+
+            // Install core mods
+            if (!repatch && _config.PatchingOptions.InstallCoreMods)
+            {
+                PatchingStage = PatchingStage.InstallCoreMods;
+                var modLoader = scotland2 ? ModLoader.Scotland2 : ModLoader.QuestLoader;
+                if (modLoader != BeatSaberUtils.GetDefaultModLoader(app.SemVersion))
+                {
+                    Log.Warning("Mod loader is different from what the core mods need, not installing core mods");
+                }
+                else
+                {
+                    Log.Information("Installing core mods");
+                    var coreMods = await _coreModsManager.GetCoreModsAsync(app.Version);
+                    if (coreMods.Count == 0)
+                    {
+                        Log.Debug("No core mods found");
+                    }
+                    else
+                    {
+                        // delete all old mods to make sure there are no conflicts
+                        await _modManager.DeleteAllMods();
+                        await _coreModsManager.InstallCoreModsAsync(coreMods, modLoader);
+                    }
+                }
             }
 
             await _installManager.NewApkInstalled(_patchedApkPath);

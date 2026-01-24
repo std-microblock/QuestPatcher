@@ -22,7 +22,9 @@
         <TextBlock DockPanel.Dock="Top" Padding="8" HorizontalAlignment="Center" TextDecorations="Underline" Text="{x:Static res:Strings.Repatch_Title}"/>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Vertical" Spacing="15" Margin="10 0 10 10">
           <TextBlock TextAlignment="Center" FontSize="14" TextWrapping="Wrap" Text="{x:Static res:Strings.Patching_SelectModLoader}"/>
-          <ComboBox SelectedIndex="{Binding Config.PatchingOptions.ModLoader}" HorizontalAlignment="Center">
+          <ComboBox SelectedIndex="{Binding Config.PatchingOptions.ModLoader}"
+                    IsEnabled="{Binding Config.ExpertMode}"
+                    HorizontalAlignment="Center">
               <ComboBoxItem Content="{x:Static res:Strings.ModLoader_QuestLoader}"/>
               <ComboBoxItem Content="{x:Static res:Strings.ModLoader_Scotland2}"/>
           </ComboBox>

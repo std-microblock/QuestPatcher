@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using DynamicData;
 using QuestPatcher.Core;
 using QuestPatcher.Core.Downgrading;
+using QuestPatcher.Core.Downgrading.Models;
 using QuestPatcher.Core.Models;
 using QuestPatcher.Models;
 using ReactiveUI;
@@ -16,20 +17,17 @@ namespace QuestPatcher.ViewModels
     public class DowngradeViewModel: ViewModelBase
     {
         private readonly Window _window;
-
+        private readonly Window _mainWindow;
+        private readonly Config _config;
         private readonly DowngradeManger _downgradeManger;
-        
         private readonly InstallManager _installManager;
-        
         private readonly OperationLocker _locker;
 
         private bool _isLoading = true;
-        
-        private readonly Config _config;
 
-        public ObservableCollection<string> AvailableToVersions { get; set; } = new ObservableCollection<string>();
+        public ObservableCollection<AppDiff> AvailablePaths { get; } = new();
 
-        public string SelectedToVersion { get; set; } = "";
+        public AppDiff? SelectedPath { get; set; }
 
         public bool IsLoading
         {
@@ -41,15 +39,17 @@ namespace QuestPatcher.ViewModels
             }
         }
 
-        public DowngradeViewModel(Window window, Config config, InstallManager installManager, DowngradeManger downgradeManger, OperationLocker locker)
+        public DowngradeViewModel(Window window, Window mainWindow, Config config, InstallManager installManager,
+            DowngradeManger downgradeManger, OperationLocker locker)
         {
             _window = window;
+            _mainWindow = mainWindow;
             _config = config;
             _installManager = installManager;
             _downgradeManger = downgradeManger;
             _locker = locker;
-            
-            window.Opened += async (sender, args) => await LoadVersions();
+
+            window.Opened += async (sender, args) => await LoadVersions(false);
             window.Closing += (sender, args) =>
             {
                 if (IsLoading)
@@ -59,15 +59,23 @@ namespace QuestPatcher.ViewModels
             };
         }
 
-        private async Task LoadVersions()
+        public void Refresh()
+        {
+            if (!IsLoading)
+            {
+                _ = LoadVersions(true);
+            }
+        }
+
+        private async Task LoadVersions(bool refresh)
         {
             IsLoading = true;
             Log.Debug("Loading available versions...");
 
-            IList<string> paths;
+            IReadOnlyList<AppDiff> paths;
             try
             {
-                paths = await _downgradeManger.GetAvailablePathAsync(_installManager.InstalledApp?.Version);
+                paths = await _downgradeManger.GetAvailablePathAsync(_installManager.InstalledApp?.Version, refresh);
                 Log.Debug("Available paths: {Paths}", paths);
             }
             catch (Exception e)
@@ -81,7 +89,7 @@ namespace QuestPatcher.ViewModels
                     HideCancelButton = true
                 };
                 dialog.WithException(e);
-                await dialog.OpenDialogue(_window);
+                _ = dialog.OpenDialogue(_mainWindow);
                 _window.Close();
                 return;
             }
@@ -95,39 +103,44 @@ namespace QuestPatcher.ViewModels
                     Text = $"{_installManager.InstalledApp?.Version ?? "null"} 暂无可用的降级版本\n刚刚更新的最新版游戏可能需要一些时间才会有可用降级",
                     HideCancelButton = true
                 };
-                await dialog.OpenDialogue(_window);
+                _ = dialog.OpenDialogue(_mainWindow);
                 _window.Close();
                 return;
             }
-            
-            AvailableToVersions.Clear();
-            AvailableToVersions.AddRange(paths);
-            
-            if (!AvailableToVersions.Contains(SelectedToVersion))
-            {
-                SelectedToVersion = paths[0];
-                this.RaisePropertyChanged(nameof(SelectedToVersion));
-            }
+
+            AvailablePaths.Clear();
+            AvailablePaths.AddRange(paths);
+
+            SelectedPath = paths[0];
+            this.RaisePropertyChanged(nameof(SelectedPath));
             
             IsLoading = false;
         }
         
         public async Task Downgrade()
         {
-            Log.Debug("Selected version: {SelectedVersion}", SelectedToVersion);
-            if (string.IsNullOrWhiteSpace(SelectedToVersion)) return;
+            Log.Debug("Selected version: {SelectedVersion}", SelectedPath);
+            if (SelectedPath is null)
+            {
+                return;
+            }
+
+            if (_installManager.InstalledApp == null)
+            {
+                Log.Warning("Trying to downgrade without game being installed");
+                return;
+            }
+
             IsLoading = true;
             DialogBuilder? dialog = null;
             try
             {
                 _locker.StartOperation();
-                await _downgradeManger.DowngradeApp(SelectedToVersion);
-                dialog = new DialogBuilder
+                bool result = await _downgradeManger.DowngradeApp(SelectedPath);
+                if (result)
                 {
-                    Title = "降级成功",
-                    Text = "现在可以给游戏打补丁装Mod了！",
-                    HideCancelButton = true
-                };
+                    dialog = new DialogBuilder { Title = "降级成功", Text = "现在可以给游戏打补丁装Mod了！", HideCancelButton = true };
+                }
             }
             catch (FileDownloadFailedException e)
             {
@@ -146,7 +159,7 @@ namespace QuestPatcher.ViewModels
                 dialog = new DialogBuilder
                 {
                     Title = "降级失败",
-                    Text = "检查日志以获取详细信息",
+                    Text = "检查日志以获取更多信息",
                     HideCancelButton = true
                 };
                 
@@ -158,9 +171,9 @@ namespace QuestPatcher.ViewModels
                 IsLoading = false;
                 if (dialog != null)
                 {
-                    await dialog.OpenDialogue(_window);
+                    _ = dialog.OpenDialogue(_mainWindow);
+                    _window.Close();
                 }
-                _window.Close();
             }
         }
     }

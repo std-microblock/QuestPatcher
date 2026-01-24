@@ -17,7 +17,7 @@
           <TextBlock FontSize="20" Text="{x:Static res:Strings.Tools_Section_Tools}"/>
           <TextBlock FontSize="10" VerticalAlignment="Bottom" FontWeight="Light" Text="{x:Static res:Strings.Tools_Section_Tools_Description}"/>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding Locker.IsFree}">
           <Button Command="{Binding DowngradeApp}" IsEnabled="{Binding PatchDowngradeAvailable }">一键降级</Button>
           <TextBlock VerticalAlignment="Center" FontSize="12">通过差异文件来降级游戏，游戏必须为1.34.2以上版本并且未打补丁</TextBlock>
         </StackPanel>
@@ -57,8 +57,9 @@
           <Button Command="{Binding QuickFix}" IsEnabled="{Binding Locker.IsFree}" Content="{x:Static res:Strings.Tools_Tool_QuickFix}"/>
           <TextBlock VerticalAlignment="Center" FontSize="12" Text="{x:Static res:Strings.Tools_Tool_QuickFix_Description}"/>
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <Button Command="{Binding RepatchApp}" IsEnabled="{Binding Locker.IsFree}" Content="{x:Static res:Strings.Tools_Tool_RepatchApp}"/>
+        <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding Locker.IsFree}">
+          <Button Command="{Binding RepatchApp}" IsEnabled="{Binding RepatchAvailable }"
+                  Content="{x:Static res:Strings.Tools_Tool_RepatchApp}" />
           <TextBlock VerticalAlignment="Center" FontSize="12" Text="{x:Static res:Strings.Tools_Tool_RepatchApp_Description}"/>
         </StackPanel>
       </StackPanel>
@@ -88,6 +89,12 @@
             <ComboBoxItem Content="mods.bsquest.xyz (国际)" />
             <ComboBoxItem Content="qmods.bsaber.cn (中文)" />
           </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <ToggleButton Name="ExpertModeToggle" IsThreeState="False" Content="专家模式"
+                        IsChecked="{Binding Config.ExpertMode, Mode=OneWay}"
+                        IsCheckedChanged="ExpertModeToggle_OnIsCheckedChanged" />
+          <TextBlock VerticalAlignment="Center" FontSize="12" Text="允许更改一些高级设置" />
         </StackPanel>
       </StackPanel>
         <StackPanel Margin="0 20 0 0" Spacing="10">

@@ -561,6 +561,22 @@ namespace QuestPatcher.Core
         }
 
         /// <summary>
+        ///     Downloads the specified URL and saves the result to a file in the temp folder.
+        ///     This is used for the download progress indicator - instead of just using a WebClient directly.
+        /// </summary>
+        /// <param name="url">The URL to download from</param>
+        /// <param name="saveName">Name of the file to save as</param>
+        /// <param name="overrideFileName">Used instead of the file name of saveName as the DownloadingFileName</param>
+        /// <exception cref="FileDownloadFailedException">If downloading the file failed</exception>
+        /// <returns>Path of the downloaded file</returns>
+        public async Task<string> DownloadUriToTemp(string url, string saveName, string? overrideFileName = null)
+        {
+            string path = Path.Combine(_specialFolders.TempFolder, saveName);
+            await DownloadUri(url, path, overrideFileName);
+            return path;
+        }
+
+        /// <summary>
         /// Downloads the specified URL and saves the result to a file.
         /// This is used for the download progress indicator - instead of just using a WebClient directly.
         /// </summary>

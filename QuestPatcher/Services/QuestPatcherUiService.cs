@@ -85,7 +85,7 @@ namespace QuestPatcher.Services
             ProgressViewModel progressViewModel = new(_operationLocker, FilesDownloader);
             _otherItemsView = new OtherItemsViewModel(OtherFilesManager, window, _browseManager, _operationLocker, progressViewModel);
             _patchingView = new PatchingViewModel(Config, _operationLocker, PatchingManager, InstallManager,
-                CoreModManager, window, progressViewModel, FilesDownloader);
+                CoreModManager, DowngradeManger, window, progressViewModel, FilesDownloader);
             _aboutView = new AboutViewModel(progressViewModel);
             _browseModView = new BrowseModViewModel(window, Config, _operationLocker, progressViewModel, InstallManager,
                 ModManager, ExternalModManager);
@@ -278,7 +278,8 @@ namespace QuestPatcher.Services
         public void OpenDowngradeMenu()
         {
             Window downgradeWindow = new DowngradeWindow();
-            var vm = new DowngradeViewModel(downgradeWindow, Config, InstallManager, DowngradeManger, _operationLocker!);
+            var vm = new DowngradeViewModel(downgradeWindow, _mainWindow, Config, InstallManager, DowngradeManger,
+                _operationLocker!);
             downgradeWindow.DataContext = vm;
             downgradeWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             _ = downgradeWindow.ShowDialog(_mainWindow);

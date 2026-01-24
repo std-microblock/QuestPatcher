@@ -6,40 +6,41 @@
         xmlns:res="clr-namespace:QuestPatcher.Resources"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="225"
         MinWidth="300" Width="400" SizeToContent="Height"
-        x:Class="QuestPatcher.Views.DowngradeWindow"
+        x:Class="QuestPatcher.Views.VersionSelectWindow"
         Icon="/Assets/questpatcher-logo.ico"
-        Title="降级应用"
+        Title="选择版本"
         Background="{x:Null}"
         ExtendClientAreaToDecorationsHint="true"
         ExtendClientAreaTitleBarHeightHint="-1"
         RequestedThemeVariant="{DynamicResource ThemeVariant}">
-  
+
   <Design.DataContext>
-    <viewModels:DowngradeViewModel />
+    <viewModels:VersionSelectViewModel />
   </Design.DataContext>
-  
+
   <DockPanel HorizontalAlignment="Stretch">
     <ExperimentalAcrylicBorder DockPanel.Dock="Bottom" Material="{DynamicResource MainBackgroundMaterial}">
       <DockPanel Margin="20">
-        <TextBlock DockPanel.Dock="Top" Padding="8" HorizontalAlignment="Center" TextDecorations="Underline" Text="降级应用"/>
-        <Button DockPanel.Dock="Bottom" Margin="0 10 0 0" Content="一键降级" Command="{Binding Downgrade}"
-                HorizontalAlignment="Center" IsEnabled="{Binding !IsLoading}" />
-        <StackPanel Orientation="Vertical" Spacing="15" Margin="0 10" HorizontalAlignment="Center">
-          <ProgressBar Width="100" IsIndeterminate="True" IsVisible="{Binding IsLoading}"/>
-          <TextBlock TextAlignment="Center" FontSize="14" TextWrapping="Wrap" Text="选择目标版本"/>
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <ComboBox SelectedItem="{Binding SelectedPath}"
-                      ItemsSource="{Binding AvailablePaths}"
-                      IsEnabled="{Binding !IsLoading}"
+        <TextBlock DockPanel.Dock="Top" Padding="8" HorizontalAlignment="Center" TextDecorations="Underline"
+                   Text="选择版本" />
+        <StackPanel DockPanel.Dock="Bottom" Margin="0 10 0 0" Orientation="Horizontal" Spacing="10"
+                    HorizontalAlignment="Center">
+          <Button Padding="8" Content="{x:Static res:Strings.Patching_StartPatching}" Command="{Binding OnSelect}" />
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Spacing="20" Margin="0 10" HorizontalAlignment="Center">
+          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" FontSize="14" TextWrapping="Wrap"
+                     Text="{Binding Message}" />
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+            <TextBlock Text="选择降级版本:" VerticalAlignment="Center" />
+            <ComboBox SelectedItem="{Binding SelectedVersion}"
+                      ItemsSource="{Binding Versions}"
                       HorizontalAlignment="Center" MinWidth="160">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
-                  <TextBlock Text="{Binding ToVersion}" />
+                  <TextBlock Text="{Binding ToVersion, FallbackValue=不降级}" />
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
-            <Button Content="刷新版本" Command="{Binding Refresh}" HorizontalAlignment="Center"
-                    IsEnabled="{Binding !IsLoading}" />
           </StackPanel>
         </StackPanel>
       </DockPanel>

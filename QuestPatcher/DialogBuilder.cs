@@ -173,6 +173,7 @@ namespace QuestPatcher
                 buttonsPanel.Children.Add(button);
             }
 
+            /*
             // Make sure to only show the normal button pretty rarely
             var normalButton = dialogue.FindControl<Button>("NormalButton")!;
             if (Random.Next(50) == 0)
@@ -188,6 +189,7 @@ namespace QuestPatcher
                     factsWindow.ShowDialog(dialogue);
                 };
             }
+            */
 
             dialogue.Closed += (_, _) =>
             {

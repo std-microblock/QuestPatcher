@@ -132,6 +132,7 @@ namespace QuestPatcher.Core.ModBrowser
             if (qMod.ModLoader != _installManager.InstalledApp?.ModLoader)
             {
                 Log.Warning("Trying to install an external mod with a different mod loader!");
+                await _modManager.DeleteMod(qMod);
                 throw new InstallationException("Mod loader mis-match");
             }
 

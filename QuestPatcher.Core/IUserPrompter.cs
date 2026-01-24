@@ -23,5 +23,7 @@ namespace QuestPatcher.Core
         Task<bool> PromptUnknownModLoader();
 
         Task PromptUpgradeFromOld();
+
+        Task<bool> PromptMissingDowngradeAssetCrc(string fileName);
     }
 }

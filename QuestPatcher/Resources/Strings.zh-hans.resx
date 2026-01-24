@@ -474,22 +474,22 @@
         <value>未开始</value>
     </data>
     <data name="PatchingStage_FetchFiles" xml:space="preserve">
-        <value>(1/6) 下载打补丁所需的文件</value>
+        <value>(1/8) 下载打补丁所需的文件</value>
     </data>
     <data name="PatchingStage_MoveToTemp" xml:space="preserve">
-        <value>(2/6) 将APK移动至指定位置</value>
+        <value>(2/8) 将APK移动至指定位置</value>
     </data>
     <data name="PatchingStage_Patching" xml:space="preserve">
-        <value>(3/6) 更改APK文件来使其支持安装mod</value>
+        <value>(3/8) 更改APK文件来使其支持安装mod</value>
     </data>
     <data name="PatchingStage_Signing" xml:space="preserve">
-        <value>(4/6) 给APK签名</value>
+        <value>(4/8) 给APK签名</value>
     </data>
     <data name="PatchingStage_UninstallOriginal" xml:space="preserve">
-        <value>(5/6) 卸载原有的APK</value>
+        <value>(5/8) 卸载原有的APK</value>
     </data>
     <data name="PatchingStage_InstallModded" xml:space="preserve">
-        <value>(6/6) 安装改过的APK</value>
+        <value>(6/8) 安装改过的APK</value>
     </data>
     <data name="Patching_FileDownloadFailed_Text" xml:space="preserve">
         <value>QuestPatcher 无法下载打补丁所需的文件。 请检查您的互联网连接，然后重试。</value>
@@ -555,6 +555,12 @@
         <value>启用身体追踪</value>
     </data>
   <data name="PatchingStage_CleanUpMods" xml:space="preserve">
-        <value>清理旧版Mod</value>
+        <value>(7/8) 清理旧版Mod</value>
+    </data>
+    <data name="PatchingStage_Downgrading" xml:space="preserve">
+        <value>(0/8) 给游戏降级</value>
+    </data>
+    <data name="PatchingStage_InstallCoreMods" xml:space="preserve">
+        <value>(8/8) 安装核心Mod</value>
     </data>
 </root>

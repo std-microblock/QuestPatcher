@@ -595,7 +595,7 @@ namespace QuestPatcher
             try
             {
                 Log.Information("Installing core mods");
-                await InstallMissingCoreMods(missingCoreMods);
+                return await InstallMissingCoreMods(missingCoreMods);
             }
             catch (Exception e)
             {
@@ -608,20 +608,32 @@ namespace QuestPatcher
                 await builder2.OpenDialogue(_mainWindow);
                 return false;
             }
-
-            return true;
         }
 
-        private async Task InstallMissingCoreMods(IEnumerable<CoreModData> mods) 
+        private async Task<bool> InstallMissingCoreMods(IReadOnlyCollection<CoreModData> mods) 
         {
-            foreach(var mod in mods)
+            var curModLoader = _installManager.InstalledApp?.ModLoader;
+            if (curModLoader is null)
             {
-                string modUrl = mod.DownloadLink;
-                string path = Path.Combine(_specialFolders.TempFolder, mod.Filename ?? "coremod_tmp.qmod");
-                await _filesDownloader.DownloadUri(modUrl, path, mod.Filename ?? mod.Id);
-                await TryImportMod(new FileImportInfo(path) { IsTemporaryFile = true }, false);
+                return false;
             }
-            await _modManager.SaveMods();
+
+            try
+            {
+                await _coreModsManager.InstallCoreModsAsync(mods, curModLoader.Value);
+                return true;
+            }
+            catch (InstallationException e) when (e.Message.Contains("Mod loader mis-match"))
+            {
+                var dialog = new DialogBuilder
+                {
+                    Title = "不匹配的Mod注入器",
+                    Text = "正在尝试安装的Mod需要的Mod注入器和当前使用的Mod注入器不匹配\n可以在工具页面点击 “重新打补丁” 来更换Mod注入器",
+                    HideCancelButton = true
+                };
+                await dialog.OpenDialogue(_mainWindow);
+                return false;
+            }
         }
         
         /// <summary>
