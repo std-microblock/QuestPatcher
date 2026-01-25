@@ -2,7 +2,7 @@
 QuestPatcher是给游戏打补丁装Mod的工具，有了它才能安装第三方Mod、才能通过Mod给游戏添加诸如自定义歌曲等功能，它的功能类似于BMBF和MBF，只不过是一个PC软件，比BMBF更简单（对于国内用户）。
 ![QP](https://github.com/WGzeyu/BeatSaberGuide/blob/pages/oq-guide/img/qp-mod.png)
 
-该版本(QuestPatcher CN)是 [@MicroCBer](https://github.com/MicroCBer) 与 [@WGzeyu](https://github.com/WGzeyu) 和 [@qe201020335](https://github.com/qe201020335) 的修改版本，其修改的内容如下
+该版本是给BeatSaber专用的修改版本，其修改的内容如下
 
 - 1.~~汉化界面~~ (已合并至上游)
 - 2.~~增加自动打包汉化功能~~ (汉化功能已变为通过[汉化Mod](https://github.com/qe201020335/PolyglotInject/releases)实现)
@@ -12,11 +12,7 @@ QuestPatcher是给游戏打补丁装Mod的工具，有了它才能安装第三�
 - 6.一键降级游戏
 - 7.自动安装核心Mod
 - 8.浏览和安装更多Mod
-- 9.一键安装QuestServerSwitcher ([Icey](#icey))
-- 10.修复某些Bug
-
-多半会鸽的功能：
-- 1.Quest2内Mod开关，下载歌单
+- 9.修复某些Bug
 
 # 如何下载
 | 下载方式 | 下载链接 |
@@ -25,10 +21,4 @@ QuestPatcher是给游戏打补丁装Mod的工具，有了它才能安装第三�
 | Github Release | [ Releases ](https://github.com/MicroCBer/QuestPatcher/releases/latest) |
 | Github Actions | [ Github Actions ](https://github.com/MicroCBer/QuestPatcher/actions) |
 
-
 Thanks for using!
-
-# 相关项目
-## Icey
-Yet another mod assistant for Beat Saber on the Quest 2.
-![Icey](https://github.com/WGzeyu/BeatSaberGuide/blob/pages/oq-guide-qp/img/icey_3.jpg)
