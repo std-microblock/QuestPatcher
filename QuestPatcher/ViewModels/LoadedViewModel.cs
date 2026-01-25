@@ -15,7 +15,7 @@ namespace QuestPatcher.ViewModels
 {
     public class LoadedViewModel : ViewModelBase
     {
-        public string SelectedAppText => "Modified by MicroBlock & SkyQe";
+        public string SelectedAppText => "Beat Saber Edition";
 
         public PatchingViewModel PatchingView { get; }
 
