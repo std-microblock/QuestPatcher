@@ -50,14 +50,14 @@ namespace QuestPatcher
                     Text = "进入GitHub下载(推荐)",
                     CloseDialogue = true,
                     ReturnValue = true,
-                    OnClick = () => Util.OpenWebpage("https://github.com/MicroCBer/QuestPatcher/releases/latest")
+                    OnClick = () => Util.OpenWebpage("https://github.com/BeatSaberCN/QuestPatcher/releases/latest")
                 },
                 new ButtonInfo
                 {
                     Text = "进入网盘下载",
                     CloseDialogue = true,
                     ReturnValue = true,
-                    OnClick = () => Util.OpenWebpage("http://share.wgzeyu.vip/?Ly8lRTUlQjclQTUlRTUlODUlQjclRUYlQkMlODglRTUlQTYlODJNb2QlRTUlQUUlODklRTglQTMlODUlRTUlOTklQTglRTMlODAlODElRTglQjAlQjElRTklOUQlQTIlRTclQkMlOTYlRTglQkUlOTElRTUlOTklQTglRTclQUQlODlCUyVFNyU5QiVCOCVFNSU4NSVCMyVFOCVCRCVBRiVFNCVCQiVCNiVFRiVCQyU4OS8=")
+                    OnClick = () => Util.OpenWebpage("https://bs.wgzeyu.com/drive/")
                 },
                 new ButtonInfo
                 {
@@ -84,14 +84,14 @@ namespace QuestPatcher
                     Text = "进入GitHub下载(推荐)",
                     CloseDialogue = true,
                     ReturnValue = true,
-                    OnClick = () => Util.OpenWebpage("https://github.com/MicroCBer/QuestPatcher/releases/latest")
+                    OnClick = () => Util.OpenWebpage("https://github.com/BeatSaberCN/QuestPatcher/releases/latest")
                 },
                 new ButtonInfo
                 {
                     Text = "进入网盘下载",
                     CloseDialogue = true,
                     ReturnValue = true,
-                    OnClick = () => Util.OpenWebpage("http://share.wgzeyu.vip/?Ly8lRTUlQjclQTUlRTUlODUlQjclRUYlQkMlODglRTUlQTYlODJNb2QlRTUlQUUlODklRTglQTMlODUlRTUlOTklQTglRTMlODAlODElRTglQjAlQjElRTklOUQlQTIlRTclQkMlOTYlRTglQkUlOTElRTUlOTklQTglRTclQUQlODlCUyVFNyU5QiVCOCVFNSU4NSVCMyVFOCVCRCVBRiVFNCVCQiVCNiVFRiVCQyU4OS8=")
+                    OnClick = () => Util.OpenWebpage("https://bs.wgzeyu.com/drive/")
                 },
                 new ButtonInfo
                 {

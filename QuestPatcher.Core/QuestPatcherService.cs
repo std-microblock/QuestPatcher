@@ -241,8 +241,10 @@ namespace QuestPatcher.Core
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse($"QuestPatcher/{VersionUtil.QuestPatcherVersion.BaseVersion()}"));
                 client.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue.Parse("application/json"));
-                
-                var res = JsonNode.Parse(await client.GetStringAsync(@"https://api.github.com/repos/MicroCBer/QuestPatcher/releases/latest"));
+
+                var res = JsonNode.Parse(
+                    await client.GetStringAsync(
+                        @"https://api.github.com/repos/BeatSaberCN/QuestPatcher/releases/latest"));
                 
                 string tagName = res?["tag_name"]?.ToString() ?? throw new Exception("Failed to check update, tag name is null");
 

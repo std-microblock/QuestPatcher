@@ -18,7 +18,7 @@ namespace QuestPatcher.ViewModels
         
         public static void OpenSourcePage()
         {
-            Util.OpenWebpage("https://github.com/MicroCBer/QuestPatcher");
+            Util.OpenWebpage("https://github.com/BeatSaberCN/QuestPatcher");
         }
         
         public static void OpenOriginalSourcePage()
